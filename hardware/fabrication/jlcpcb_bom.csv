@@ -1,0 +1,8 @@
+Comment,Designator,Footprint,LCSC Part #
+CM4 CONNECTOR,JS1,HIROSE_DF40C,Confirm per final carrier design
+USB-C RECEPTACLE,J1,USB_C_16P,Confirm
+CHARGER,U4,QFN-24,Confirm
+FUEL_GAUGE,U5,SON-12,Confirm
+I2S_AMP,U6,TQFN-16,Confirm
+ACCEL,U7,LGA-12,Confirm
+ALS,U8,USON-6,Confirm

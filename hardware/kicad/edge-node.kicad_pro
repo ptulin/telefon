@@ -1,0 +1,27 @@
+{
+  "board": {
+    "design_settings": {
+      "defaults": {
+        "board_outline_line_width": 0.1,
+        "copper_line_width": 0.15,
+        "copper_text_size_h": 1.0,
+        "copper_text_size_v": 1.0,
+        "courtyard_line_width": 0.05,
+        "silk_line_width": 0.12
+      }
+    }
+  },
+  "meta": {
+    "filename": "edge-node.kicad_pro",
+    "version": 1
+  },
+  "project": {
+    "name": "edge-node"
+  },
+  "schematic": {
+    "legacy_lib_dir": "",
+    "meta": {
+      "version": 1
+    }
+  }
+}

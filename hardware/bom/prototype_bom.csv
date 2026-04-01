@@ -1,0 +1,17 @@
+Item,Designator,Qty,Category,Manufacturer,MPN,Description,Supplier,Order Link,Notes
+1,U1,1,Compute,Raspberry Pi,SC0692,Raspberry Pi Compute Module 4 8GB eMMC,Digikey,https://www.digikey.com/en/products/result?keywords=SC0692,Preferred EVT module
+2,U2,1,Modem,Quectel,EC25-E,4G LTE modem with voice support,Mouser,https://www.mouser.com/c/?q=EC25-E,Lower thermal risk than 5G for EVT
+3,U3,1,Display,Newhaven,NHD-3.2-25664UCY2,3.2 inch OLED touchscreen,Digikey,https://www.digikey.com/en/products/result?keywords=NHD-3.2-25664UCY2,Check final thickness
+4,BAT1,1,Battery,EEMB,LP553759,LiPo battery 1500mAh,Mouser,https://www.mouser.com/c/?q=LP553759,Match enclosure cavity
+5,U4,1,Charger,TI,BQ25895RTWR,1-cell Li-Ion charger with power path,Digikey,https://www.digikey.com/en/products/result?keywords=BQ25895RTWR,USB + solar front end candidate
+6,U5,1,Fuel Gauge,TI,BQ27441DRZR-G1A,Fuel gauge,Digikey,https://www.digikey.com/en/products/result?keywords=BQ27441DRZR-G1A,I2C battery telemetry
+7,U6,1,Audio Amp,TI,MAX98357AETE+,I2S class-D amplifier,Mouser,https://www.mouser.com/c/?q=MAX98357AETE%2B,Compact speaker path
+8,MIC1,1,Audio,Infineon,IM69D130V01XTSA1,I2S MEMS microphone,Digikey,https://www.digikey.com/en/products/result?keywords=IM69D130V01XTSA1,High SNR voice capture
+9,U7,1,Sensor,STMicroelectronics,LIS2DW12TR,3-axis accelerometer,Mouser,https://www.mouser.com/c/?q=LIS2DW12TR,Low-power motion sensing
+10,U8,1,Sensor,Texas Instruments,OPT3001DNPR,Ambient light sensor,Digikey,https://www.digikey.com/en/products/result?keywords=OPT3001DNPR,Auto brightness
+11,U9,1,Touch Controller,FocalTech,FT6236GMA,Capacitive touch controller,Mouser,https://www.mouser.com/c/?q=FT6236GMA,Confirm panel compatibility
+12,FP1,1,Biometric,Goodix,GF3208,Fingerprint sensor module,Mouser,https://www.mouser.com/c/?q=GF3208,Optional
+13,J1,1,Connector,Amphenol,12401610E4-2A,USB-C receptacle,Digikey,https://www.digikey.com/en/products/result?keywords=12401610E4-2A,Power + debug
+14,SPK1,1,Audio,CUI Devices,CDS-18138,Mini speaker 8 ohm,Mouser,https://www.mouser.com/c/?q=CDS-18138,Needs cavity tuning
+15,ANT1,1,RF,Taoglas,FXUB66.07.0150A,Flexible LTE antenna,Digikey,https://www.digikey.com/en/products/result?keywords=FXUB66.07.0150A,Keep-out critical
+16,ANT2,1,RF,Taoglas,FXP75070045A,Flexible WiFi/Bluetooth antenna,Digikey,https://www.digikey.com/en/products/result?keywords=FXP75070045A,Top edge placement

@@ -1,0 +1,90 @@
+:root {
+  --bg: #0f1417;
+  --panel: #182026;
+  --text: #eef4f6;
+  --muted: #95a6ad;
+  --accent: #54d2a0;
+  --danger: #ff6b6b;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #24313a, var(--bg) 62%);
+  color: var(--text);
+}
+
+.shell {
+  min-height: 100vh;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.status {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.status.online {
+  color: var(--accent);
+}
+
+.status.offline {
+  color: var(--danger);
+}
+
+.panel {
+  background: color-mix(in srgb, var(--panel) 92%, black);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.24);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+textarea,
+input,
+button {
+  width: 100%;
+  border-radius: 14px;
+  border: 0;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+textarea,
+input {
+  background: #0c1114;
+  color: var(--text);
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+button {
+  margin-top: 10px;
+  background: linear-gradient(135deg, #61dba9, #3294ff);
+  color: #061419;
+  font-weight: 700;
+}
+
+pre {
+  white-space: pre-wrap;
+  color: var(--muted);
+}

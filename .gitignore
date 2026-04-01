@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+software/config/device.yaml
+hardware/fabrication/gerbers/*.gbr
+hardware/fabrication/gerbers/*.drl
+*.DS_Store

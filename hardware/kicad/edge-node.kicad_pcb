@@ -1,0 +1,31 @@
+(kicad_pcb
+  (version 20231120)
+  (generator "codex")
+  (general
+    (thickness 1.2)
+  )
+  (paper "A4")
+  (title_block
+    (title "Hybrid AI Edge Node")
+    (rev "A0")
+  )
+  (layers
+    (0 "F.Cu" signal)
+    (2 "In1.Cu" signal)
+    (4 "In2.Cu" signal)
+    (31 "B.Cu" signal)
+    (36 "B.SilkS" user)
+    (37 "F.SilkS" user)
+    (44 "Edge.Cuts" user)
+  )
+  (setup
+    (pcbplotparams
+      (layerselection 0x00010fc_ffffffff)
+      (plot_on_all_layers_selection 0x0000000_00000000)
+      (disableapertmacros false)
+      (drillshape 1)
+    )
+  )
+  (gr_rect (start 0 0) (end 140 70) (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts"))
+  (gr_text "140 mm x 70 mm target board envelope; final placement and routing pending." (at 70 35 0) (layer "F.SilkS"))
+)

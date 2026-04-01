@@ -1,0 +1,22 @@
+(kicad_sch
+  (version 20231120)
+  (generator "codex")
+  (paper "A3")
+  (title_block
+    (title "Hybrid AI Edge Node")
+    (company "Prototype EVT Package")
+    (rev "A0")
+    (comment 1 "CM4 carrier with cellular, audio, display, and power subsystems")
+  )
+  (lib_symbols
+    (symbol "Device:R" (pin_numbers hide) (pin_names hide))
+    (symbol "Device:C" (pin_numbers hide) (pin_names hide))
+    (symbol "Connector:USB_C_Receptacle_USB2.0")
+    (symbol "RF_Module:Quectel_EC25")
+    (symbol "RF_Module:RaspberryPi_CM4")
+  )
+  (sheet_instances (path "/" (page "1")))
+  (text "Preliminary schematic source. Complete symbol pin mapping and ERC cleanup required before fabrication." (at 35 20 0))
+  (text "Power tree: USB-C / solar -> charger -> battery -> boost / 3V3 rails" (at 35 30 0))
+  (text "Interfaces: CM4 SPI display, I2C sensors, I2S audio, USB modem, UART AT debug" (at 35 40 0))
+)

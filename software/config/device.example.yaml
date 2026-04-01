@@ -1,0 +1,38 @@
+device:
+  name: "Hybrid AI Edge Node"
+  timezone: "America/New_York"
+  storage_root: "/var/lib/edge-node"
+  ui_port: 8080
+
+models:
+  local_default: "phi3.5:mini"
+  local_fallback: "gemma2:2b"
+  cloud_provider: "xai"
+  cloud_model: "grok-4-fast"
+
+memory:
+  backend: "chromadb"
+  collection: "personal_memory"
+  sync_interval_seconds: 300
+
+telephony:
+  dialer_backend: "modemmanager"
+  modem_tty: "/dev/ttyUSB2"
+  audio_mode: "speakerphone"
+
+audio:
+  input_device: "default"
+  output_device: "default"
+  tts_engine: "pyttsx3"
+  asr_engine: "vosk"
+
+network:
+  connectivity_check_url: "https://api.x.ai"
+  offline_after_failures: 3
+
+xai:
+  api_key_env: "XAI_API_KEY"
+  base_url: "https://api.x.ai/v1"
+
+ollama:
+  base_url: "http://127.0.0.1:11434"

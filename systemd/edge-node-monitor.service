@@ -1,0 +1,16 @@
+[Unit]
+Description=Hybrid AI Edge Node connectivity monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/Users/patu/Documents/CursorProjects/telefon
+Environment=EDGE_NODE_CONFIG=/Users/patu/Documents/CursorProjects/telefon/software/config/device.yaml
+ExecStart=/Users/patu/Documents/CursorProjects/telefon/.venv/bin/python /Users/patu/Documents/CursorProjects/telefon/software/services/monitor.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

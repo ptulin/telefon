@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hybrid AI Edge Node</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="header">
+      <div>
+        <h1>Edge Node</h1>
+        <p class="status {{ 'online' if online else 'offline' }}">{{ 'Online' if online else 'Offline' }}</p>
+      </div>
+    </section>
+    <section class="panel">
+      <textarea id="prompt" placeholder="Ask Grok or local AI..."></textarea>
+      <button onclick="sendPrompt()">Send</button>
+      <pre id="reply"></pre>
+    </section>
+    <section class="panel row">
+      <input id="phone" placeholder="+15551234567">
+      <button onclick="dial()">Call</button>
+    </section>
+  </main>
+  <script>
+    async function sendPrompt() {
+      const prompt = document.getElementById("prompt").value;
+      const reply = document.getElementById("reply");
+      reply.textContent = "Thinking...";
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({prompt})
+      });
+      const data = await res.json();
+      reply.textContent = "[" + data.mode + "] " + data.text;
+    }
+
+    async function dial() {
+      const number = document.getElementById("phone").value;
+      const reply = document.getElementById("reply");
+      const res = await fetch("/api/call", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({number})
+      });
+      const data = await res.json();
+      reply.textContent = data.result;
+    }
+  </script>
+</body>
+</html>
