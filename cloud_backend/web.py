@@ -1416,9 +1416,20 @@ def manifest_payload() -> str:
 
 def service_worker_payload() -> str:
     return """
-self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.map((name) => caches.delete(name)));
+    const registrations = await self.registration.unregister();
+    await self.clients.claim();
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const client of clients) {
+      client.navigate(client.url);
+    }
+  })());
 });
 self.addEventListener('fetch', () => {});
 """

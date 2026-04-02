@@ -41,6 +41,14 @@ SESSION_COOKIE = "personal_ai_session"
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "personal-ai-phone-session-secret")
 
 
+def _html_response(content: str) -> HTMLResponse:
+    response = HTMLResponse(content)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def _friendly_validation_message(exc: RequestValidationError) -> str:
     errors = exc.errors()
     if not errors:
@@ -662,14 +670,14 @@ def root(request: Request):
         _current_user(request)
         return RedirectResponse("/app", status_code=302)
     except HTTPException:
-        return HTMLResponse(render_landing_page())
+        return _html_response(render_landing_page())
 
 
 @app.get("/app", response_class=HTMLResponse)
 def app_page(request: Request):
     try:
         _current_user(request)
-        return HTMLResponse(render_app_page())
+        return _html_response(render_app_page())
     except HTTPException:
         return RedirectResponse("/", status_code=302)
 
@@ -678,19 +686,27 @@ def app_page(request: Request):
 def download_page(request: Request):
     try:
         user = _current_user(request)
-        return HTMLResponse(render_download_page(user["first_name"] or user["display_name"]))
+        return _html_response(render_download_page(user["first_name"] or user["display_name"]))
     except HTTPException:
         return RedirectResponse("/", status_code=302)
 
 
 @app.get("/manifest.webmanifest")
 def manifest():
-    return Response(content=manifest_payload(), media_type="application/manifest+json")
+    response = Response(content=manifest_payload(), media_type="application/manifest+json")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.get("/sw.js")
 def service_worker():
-    return Response(content=service_worker_payload(), media_type="application/javascript")
+    response = Response(content=service_worker_payload(), media_type="application/javascript")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.post("/auth/register")
@@ -814,7 +830,7 @@ def auth_me(request: Request):
 
 @app.get("/reset-password", response_class=HTMLResponse)
 def reset_password_page():
-    return HTMLResponse(render_reset_password_page())
+    return _html_response(render_reset_password_page())
 
 
 @app.get("/app/api/bootstrap")
