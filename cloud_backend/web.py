@@ -4,7 +4,7 @@ import json
 
 
 def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
-    nav = """
+    public_nav = """
     <div class="nav">
       <div class="brand-wrap">
         <div class="brand">Personal AI Phone</div>
@@ -17,6 +17,21 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       </div>
     </div>
     """
+    app_nav = """
+    <div class="nav">
+      <div class="brand-wrap">
+        <div class="brand">Personal AI Phone</div>
+        <div class="tagline">A calmer assistant for everyday life</div>
+      </div>
+      <div class="nav-links">
+        <a href="/app">Home</a>
+        <a href="/download">Install</a>
+        <button type="button" class="nav-button" onclick="window.setTab && window.setTab('profile')">Profile</button>
+        <button type="button" class="nav-button" onclick="window.logoutUser && window.logoutUser()">Sign out</button>
+      </div>
+    </div>
+    """
+    nav = app_nav if app_shell else public_nav
     return f"""
 <!doctype html>
 <html lang="en">
@@ -85,11 +100,17 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       flex-wrap: wrap;
       color: var(--muted);
     }}
-    .nav-links a {{
+    .nav-links a, .nav-button {{
       padding: 12px 16px;
       border-radius: 999px;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
+    }}
+    .nav-button {{
+      color: inherit;
+      min-height: auto;
+      font-weight: 700;
+      cursor: pointer;
     }}
     .hero, .panel, .card {{
       border-radius: 28px;
@@ -272,7 +293,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
 </head>
 <body>
   <main class="page">
-    {nav if app_shell else ''}
+    {nav}
     {body}
   </main>
   <script>
@@ -576,11 +597,6 @@ def render_app_page() -> str:
             <div id="password-help-status" class="status">This is here so support is always close by.</div>
           </div>
 
-          <div class="panel">
-            <div class="kicker">Sign out</div>
-            <h2>Done for now?</h2>
-            <button class="secondary" onclick="logoutUser()">Sign out</button>
-          </div>
         </div>
       </div>
     </section>
@@ -1121,6 +1137,9 @@ def render_app_page() -> str:
         await fetch('/auth/logout', { method: 'POST' });
         window.location.href = '/';
       }
+
+      window.setTab = setTab;
+      window.logoutUser = logoutUser;
 
       fetchBootstrap();
     </script>
