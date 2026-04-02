@@ -18,6 +18,10 @@ class Settings:
     def ui_port(self) -> int:
         return int(self.raw["device"]["ui_port"])
 
+    @property
+    def device_id(self) -> str:
+        return str(self.raw["device"]["device_id"])
+
 
 def load_settings() -> Settings:
     config_path = Path(os.environ.get("EDGE_NODE_CONFIG", "software/config/device.yaml"))

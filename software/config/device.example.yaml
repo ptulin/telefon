@@ -1,19 +1,27 @@
 device:
   name: "Hybrid AI Edge Node"
+  device_id: "edge-node-001"
   timezone: "America/New_York"
   storage_root: "/var/lib/edge-node"
   ui_port: 8080
 
 models:
+  routing_mode: "cloud_first"
   local_default: "phi3.5:mini"
   local_fallback: "gemma2:2b"
   cloud_provider: "xai"
   cloud_model: "grok-4-fast"
+  cloud_vision_model: "grok-vision"
 
 memory:
   backend: "chromadb"
   collection: "personal_memory"
   sync_interval_seconds: 300
+  profile_categories:
+    - preferences
+    - habits
+    - relationships
+    - life_details
 
 telephony:
   dialer_backend: "modemmanager"
@@ -30,9 +38,18 @@ network:
   connectivity_check_url: "https://api.x.ai"
   offline_after_failures: 3
 
+backend:
+  base_url: "http://127.0.0.1:9000"
+  auth_token_env: "EDGE_NODE_TOKEN"
+
 xai:
   api_key_env: "XAI_API_KEY"
   base_url: "https://api.x.ai/v1"
 
 ollama:
   base_url: "http://127.0.0.1:11434"
+
+uploads:
+  root: "/var/lib/edge-node/uploads"
+  photos_dir: "photos"
+  documents_dir: "documents"

@@ -12,7 +12,15 @@
       <div>
         <h1>Edge Node</h1>
         <p class="status {{ 'online' if online else 'offline' }}">{{ 'Online' if online else 'Offline' }}</p>
+        <p class="subtitle">One adaptive AI interface for chat, calls, camera, documents, and memory.</p>
       </div>
+    </section>
+    <section class="panel row">
+      <button onclick="setMode('chat')">Chat</button>
+      <button onclick="setMode('phone')">Phone</button>
+      <button onclick="setMode('camera')">Camera</button>
+      <button onclick="setMode('documents')">Docs</button>
+      <button onclick="setMode('memory')">Memory</button>
     </section>
     <section class="panel">
       <textarea id="prompt" placeholder="Ask Grok or local AI..."></textarea>
@@ -25,6 +33,13 @@
     </section>
   </main>
   <script>
+    let currentMode = "chat";
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById("reply").textContent = "Mode: " + mode;
+    }
+
     async function sendPrompt() {
       const prompt = document.getElementById("prompt").value;
       const reply = document.getElementById("reply");
@@ -32,10 +47,10 @@
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({prompt})
+        body: JSON.stringify({prompt, preferred_mode: currentMode})
       });
       const data = await res.json();
-      reply.textContent = "[" + data.mode + "] " + data.text;
+      reply.textContent = "[" + data.mode + "][" + data.interface_mode + "] " + data.text;
     }
 
     async function dial() {

@@ -27,5 +27,5 @@
     )
   )
   (gr_rect (start 0 0) (end 140 70) (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts"))
-  (gr_text "140 mm x 70 mm target board envelope; final placement and routing pending." (at 70 35 0) (layer "F.SilkS"))
+  (gr_text "140 mm x 70 mm target board envelope; reserve top edge for camera and RF keep-outs." (at 70 35 0) (layer "F.SilkS"))
 )

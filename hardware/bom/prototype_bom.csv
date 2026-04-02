@@ -15,3 +15,5 @@ Item,Designator,Qty,Category,Manufacturer,MPN,Description,Supplier,Order Link,No
 14,SPK1,1,Audio,CUI Devices,CDS-18138,Mini speaker 8 ohm,Mouser,https://www.mouser.com/c/?q=CDS-18138,Needs cavity tuning
 15,ANT1,1,RF,Taoglas,FXUB66.07.0150A,Flexible LTE antenna,Digikey,https://www.digikey.com/en/products/result?keywords=FXUB66.07.0150A,Keep-out critical
 16,ANT2,1,RF,Taoglas,FXP75070045A,Flexible WiFi/Bluetooth antenna,Digikey,https://www.digikey.com/en/products/result?keywords=FXP75070045A,Top edge placement
+17,CAM1,1,Camera,Raspberry Pi,SC0876,Camera Module 3 standard autofocus,Digikey,https://www.digikey.com/en/products/result?keywords=Raspberry%20Pi%20camera%20module%203,Primary camera input
+18,J2,1,Connector,Hirose,FH35C-31S-0.3SHW,FPC camera connector,Mouser,https://www.mouser.com/c/?q=FH35C-31S-0.3SHW,Confirm mating height

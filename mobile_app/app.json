@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Personal AI Phone",
+    "slug": "personal-ai-phone",
+    "scheme": "personaiphone",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "plugins": [
+      "expo-router",
+      "expo-contacts",
+      "expo-image-picker"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSContactsUsageDescription": "The app uses your contacts so the AI can help you call people by name.",
+        "NSCalendarsUsageDescription": "The app uses your calendar so the AI can help you review and schedule events.",
+        "NSCameraUsageDescription": "The app uses the camera so the AI can help with photos, OCR, and scene understanding.",
+        "NSPhotoLibraryUsageDescription": "The app uses your photo library so the AI can help you understand and organize photos."
+      }
+    },
+    "android": {
+      "permissions": [
+        "READ_CONTACTS",
+        "WRITE_CONTACTS",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "CAMERA"
+      ]
+    }
+  }
+}

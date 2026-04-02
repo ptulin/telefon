@@ -1,79 +1,121 @@
-# Hybrid AI Edge Node
+# Personal AI Phone
 
-Hybrid AI Edge Node is a pocket-sized AI companion built around a Raspberry Pi Compute Module 4 / Pi 5-class architecture with cellular voice/data, offline local AI fallback, and cloud-first orchestration for Grok/xAI.
+Personal AI Phone is a smartphone-first prototype for a simplified AI operating layer that can gradually replace the normal app model.
 
-This repository is organized as a prototype manufacturing package plus deployable device software:
+The product goal is straightforward:
 
-- `docs/` system architecture, manufacturing notes, assembly, and validation plans
-- `hardware/` KiCad project sources, BOMs, fabrication outputs, and interface specs
-- `mechanical/` enclosure CAD source and manufacturing notes
-- `software/` edge services, UI, sync engine, memory vault, and local/cloud AI routing
-- `scripts/` installation, provisioning, and export helpers
-- `systemd/` auto-start services for device runtime
+- one primary AI interface instead of many apps
+- voice and touch parity for everyday actions
+- cloud-first intelligence with local fallback where practical
+- persistent personal memory across phone, desktop, and cloud
+- a path toward future agent-to-agent coordination and eventually a dedicated thin-client device
 
-## Current Scope
+This branch reframes the project from a custom edge-device-first concept into a normal-smartphone MVP that can help older or non-technical users with calling, calendar, reminders, camera help, documents, and daily tasks.
 
-This repo provides a serious first prototype package for EVT-style builds:
+## Product Direction
 
-- Hardware architecture and schematic capture starter files
-- Preliminary PCB floorplanning constraints and fabrication package structure
-- BOM and CPL templates for JLCPCB / PCBWay workflows
-- A deployable Python software stack for hybrid AI, telephony integration, voice I/O, memory sync, and small-screen UI
-- Assembly and bring-up documentation
+The app is meant to become an AI operating layer in stages:
 
-Before production release, the design still requires:
+1. Assist the user with normal smartphone features.
+2. Perform multi-step tasks across services on the user’s behalf.
+3. Coordinate with other agents and services over the internet.
+4. Eventually reduce dependence on the traditional smartphone UI entirely.
 
-- Full schematic review and ERC cleanup in KiCad
-- RF layout review for LTE/5G, GNSS, antennas, and EMC
-- Thermal and battery safety validation
-- Carrier certification planning for cellular voice support
-- Mechanical tolerance verification and material selection sign-off
+## Core MVP
 
-## Recommended Prototype Configuration
+- Contacts lookup and voice-driven call initiation
+- Calendar read/create/update with AI confirmation
+- Memory vault for habits, preferences, relationships, and life details
+- Camera and document understanding
+- Reminders and daily briefings
+- Unified AI interface with adaptive modes:
+  - `talk`
+  - `call`
+  - `calendar`
+  - `camera`
+  - `documents`
+  - `memory`
 
-- SoC: Raspberry Pi Compute Module 4, 8GB RAM, 32GB eMMC
-- Display: 3.2" OLED or e-paper capacitive touch panel over SPI/DSI
-- Modem: Quectel EC25-E for LTE voice/data EVT, RM520N-GL for later 5G variant
-- Audio: I2S MEMS microphone + Class-D speaker amplifier
-- Power: 1500-2200 mAh LiPo, USB-C PD input, solar trickle input via MPPT charger
-- Storage: 128GB industrial microSD for logs, models, and local memory vault
+## Forward-Looking Architecture
 
-## Quick Start
+This repo is designed to support future capabilities such as:
 
-```bash
-cd /Users/patu/Documents/CursorProjects/telefon
-chmod +x scripts/install.sh
-./scripts/install.sh
-sudo cp systemd/*.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable edge-node.service edge-node-monitor.service edge-node-sync.service
-sudo systemctl start edge-node.service
-```
-
-## Software Highlights
-
-- Online mode routes high-complexity requests to Grok/xAI tools
-- Offline mode falls back to Ollama-hosted small models
-- Memory vault stores encrypted local notes and embeddings, then syncs upstream
-- Telephony layer uses ModemManager or AT-command fallback
-- Voice stack supports streaming ASR/TTS and wake interaction patterns
+- agent-to-agent scheduling
+- commerce and booking workflows
+- autonomous follow-ups and delegated tasks
+- trusted action policies for purchases, sharing, and sensitive operations
+- eventual migration to a dedicated thin-client AI device
 
 ## Repository Layout
 
 ```text
-hardware/
-  bom/
-  fabrication/
-  kicad/
-  specs/
-mechanical/
-  case/
-docs/
-software/
-  app/
-  config/
-  services/
-  ui/
-scripts/
-systemd/
+cloud_backend/   cloud API, orchestration, sync, canonical memory
+desktop_app/     desktop companion client
+docs/            product, architecture, capability matrix, migration
+mobile_app/      smartphone-first app scaffold
+shared/          shared data contracts
+software/        legacy edge-device runtime from earlier prototype
+hardware/        legacy thin-client hardware package from earlier prototype
+mechanical/      legacy enclosure package from earlier prototype
 ```
+
+## Smartphone-First Notes
+
+- `mobile_app/` is now the primary client direction for the prototype.
+- `cloud_backend/` remains the canonical backend for memory, sync, and strong-model access.
+- `software/`, `hardware/`, and `mechanical/` are retained as the legacy path toward the future dedicated device.
+
+## Quick Start
+
+### Cloud Backend
+
+```bash
+cd /Users/patu/Documents/CursorProjects/telefon
+./scripts/install_backend.sh
+uvicorn cloud_backend.main:app --host 0.0.0.0 --port 9000
+```
+
+Hosted prototype target:
+
+- Vercel for API hosting
+- Supabase Storage for canonical state persistence
+- Current live API: `https://telefon-phi.vercel.app`
+
+### Desktop App
+
+```bash
+python3 desktop_app/main.py
+```
+
+### Mobile App
+
+```bash
+cd /Users/patu/Documents/CursorProjects/telefon/mobile_app
+npm install
+npm run start
+```
+
+## Important Scope Boundaries
+
+What a smartphone app can do well:
+
+- contacts access
+- call initiation
+- calendar access
+- camera capture and upload
+- local encrypted storage and sync
+- reminders, memory, and guided workflows
+
+What remains constrained by mobile OS rules:
+
+- deep call interception
+- unrestricted background execution
+- always-on camera/microphone behavior
+- fully autonomous sensitive actions without explicit confirmation
+
+## Docs To Read First
+
+- [Product spec](/Users/patu/Documents/CursorProjects/telefon/docs/product_spec.md)
+- [Capability matrix](/Users/patu/Documents/CursorProjects/telefon/docs/capability_matrix.md)
+- [Smartphone architecture](/Users/patu/Documents/CursorProjects/telefon/docs/architecture.md)
+- [Migration plan](/Users/patu/Documents/CursorProjects/telefon/docs/smartphone_migration.md)

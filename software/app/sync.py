@@ -8,17 +8,36 @@ class SyncClient:
     def __init__(self, settings: dict):
         self.settings = settings
 
-    def sync_memories(self, records: list[dict]) -> set[str]:
-        xai = self.settings["xai"]
-        api_key = os.environ.get(xai["api_key_env"], "")
-        if not api_key:
-            return set()
+    def _headers(self) -> dict:
+        backend = self.settings["backend"]
+        token = os.environ.get(backend["auth_token_env"], "")
+        headers = {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def sync_push(self, device_id: str, memory_facts: list[dict], conversations: list[dict], uploads: list[dict]) -> bool:
+        backend = self.settings["backend"]
         response = requests.post(
-            f'{xai["base_url"]}/edge/sync',
+            f'{backend["base_url"]}/v1/sync/push',
             timeout=20,
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={"memories": records},
+            headers=self._headers(),
+            json={
+                "device_id": device_id,
+                "memory_facts": memory_facts,
+                "conversations": conversations,
+                "uploads": uploads,
+            },
         )
-        if response.status_code >= 400:
-            return set()
-        return {record["memory_id"] for record in records}
+        return response.status_code < 400
+
+    def sync_pull(self, device_id: str, last_sync_at: str = "") -> dict:
+        backend = self.settings["backend"]
+        response = requests.post(
+            f'{backend["base_url"]}/v1/sync/pull',
+            timeout=20,
+            headers=self._headers(),
+            json={"device_id": device_id, "last_sync_at": last_sync_at},
+        )
+        response.raise_for_status()
+        return response.json()

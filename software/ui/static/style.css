@@ -30,6 +30,12 @@ body {
   font-size: 1.7rem;
 }
 
+.subtitle {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .status {
   margin: 4px 0 0;
   color: var(--muted);
@@ -82,6 +88,7 @@ button {
   background: linear-gradient(135deg, #61dba9, #3294ff);
   color: #061419;
   font-weight: 700;
+  cursor: pointer;
 }
 
 pre {

@@ -4,11 +4,14 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 
+from .address_book import AddressBook
+from .camera import CameraManager
 from .config import load_settings
 from .connectivity import ConnectivityMonitor
 from .llm_router import HybridRouter
 from .memory import MemoryVault
 from .telephony import TelephonyManager
+from .uploads import UploadManager
 from .voice import VoiceIO
 
 
@@ -25,6 +28,9 @@ telephony = TelephonyManager(
     settings.raw["telephony"]["modem_tty"],
 )
 voice = VoiceIO()
+uploads = UploadManager(Path(settings.raw["uploads"]["root"]))
+camera = CameraManager(Path(settings.raw["uploads"]["root"]))
+address_book = AddressBook(Path(settings.storage_root) / "contacts")
 
 
 @app.route("/")
@@ -36,27 +42,89 @@ def index():
 @app.route("/api/chat", methods=["POST"])
 def chat():
     prompt = request.json["prompt"]
-    response = router.generate(prompt, tools=["web", "memory", "telephony"])
-    memory.add(f"Q: {prompt}\nA: {response['text']}")
+    response = router.generate(
+        prompt,
+        tools=["web", "memory", "telephony", "vision", "documents"],
+        preferred_mode=request.json.get("preferred_mode"),
+    )
+    mode = response.get("interface_mode", "chat")
+    memory.add_conversation("user", prompt, mode)
+    memory.add_conversation("assistant", response["text"], mode)
     return jsonify(response)
 
 
-@app.route("/api/memory", methods=["POST"])
+@app.route("/api/memory/facts", methods=["POST"])
 def add_memory():
-    item = memory.add(request.json["text"])
-    return jsonify(item.__dict__)
+    payload = request.json
+    item = memory.add_fact(
+        payload["category"],
+        payload["summary"],
+        payload.get("detail", payload["summary"]),
+        payload.get("source", "device"),
+    )
+    return jsonify(item)
+
+
+@app.route("/api/memory/profile")
+def profile():
+    return jsonify(memory.profile())
 
 
 @app.route("/api/status")
 def status():
     connectivity.probe()
-    return jsonify({"online": connectivity.online})
+    return jsonify({"online": connectivity.online, "routing_mode": settings.raw["models"]["routing_mode"]})
 
 
 @app.route("/api/call", methods=["POST"])
 def place_call():
-    result = telephony.dial(request.json["number"])
-    return jsonify({"result": result})
+    number = request.json.get("number", "")
+    if not number and request.json.get("contact_query"):
+        contact = address_book.match(request.json["contact_query"])
+        if contact:
+            number = contact["phone"]
+    result = telephony.dial(number)
+    return jsonify({"result": result, "number": number})
+
+
+@app.route("/api/contacts", methods=["GET", "POST"])
+def contacts():
+    if request.method == "POST":
+        contact = address_book.add(request.json["name"], request.json["phone"], request.json.get("notes", ""))
+        return jsonify(contact)
+    return jsonify({"contacts": address_book.all()})
+
+
+@app.route("/api/interface-state")
+def interface_state():
+    return jsonify(
+        {
+            "available_modes": ["chat", "phone", "camera", "documents", "memory"],
+            "voice_control": True,
+            "touch_control": True,
+        }
+    )
+
+
+@app.route("/api/camera/analyze", methods=["POST"])
+def analyze_camera():
+    prompt = request.json.get("prompt", "Describe the current scene")
+    return jsonify(camera.analyze_stub(prompt))
+
+
+@app.route("/api/uploads/document", methods=["POST"])
+def upload_document():
+    source_path = Path(request.json["path"])
+    record = uploads.add_document(source_path, request.json.get("summary", "Queued document for AI understanding"))
+    return jsonify(record)
+
+
+@app.route("/api/uploads/photo", methods=["POST"])
+def upload_photo():
+    source_path = Path(request.json["path"])
+    record = camera.import_photo(source_path, request.json.get("summary", "Queued photo for AI understanding"))
+    uploads.add_photo_record(record)
+    return jsonify(record)
 
 
 @app.route("/api/speak", methods=["POST"])

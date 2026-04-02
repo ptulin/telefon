@@ -1,7 +1,11 @@
 .venv/
+.venv-backend/
+.venv-desktop/
 __pycache__/
 *.pyc
 software/config/device.yaml
 hardware/fabrication/gerbers/*.gbr
 hardware/fabrication/gerbers/*.drl
 *.DS_Store
+cloud_backend/data/
+.vercel

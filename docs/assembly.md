@@ -15,10 +15,11 @@
 1. Reflow PMIC, power path, passive rails, and fuel gauge
 2. Reflow CM4 connectors and high-density board-to-board headers
 3. Reflow audio codec, MEMS mic, touch controller, and sensors
-4. Hand-place shield cans if used
-5. Attach modem module and antennas
-6. Wire speaker, display flex, battery, and solar input tail
-7. Perform bring-up with bench supply before battery connection
+4. Reflow camera connector and nearby protection network
+5. Hand-place shield cans if used
+6. Attach modem module and antennas
+7. Wire speaker, display flex, battery, camera flex, and solar input tail
+8. Perform bring-up with bench supply before battery connection
 
 ## Bring-Up Checklist
 
@@ -27,6 +28,7 @@
 - Confirm modem enumerates on USB
 - Confirm microphone input and speaker output
 - Confirm touch panel interrupt and I2C address
+- Confirm camera enumeration and preview capture
 - Run battery gauge and charger telemetry checks
 - Test outbound and inbound phone calls with headset and speaker path
 

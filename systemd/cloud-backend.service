@@ -1,0 +1,15 @@
+[Unit]
+Description=Hybrid AI Edge Node cloud backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/Users/patu/Documents/CursorProjects/telefon
+ExecStart=/Users/patu/Documents/CursorProjects/telefon/.venv-backend/bin/uvicorn cloud_backend.main:app --host 0.0.0.0 --port 9000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

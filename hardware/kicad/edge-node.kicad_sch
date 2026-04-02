@@ -18,5 +18,6 @@
   (sheet_instances (path "/" (page "1")))
   (text "Preliminary schematic source. Complete symbol pin mapping and ERC cleanup required before fabrication." (at 35 20 0))
   (text "Power tree: USB-C / solar -> charger -> battery -> boost / 3V3 rails" (at 35 30 0))
-  (text "Interfaces: CM4 SPI display, I2C sensors, I2S audio, USB modem, UART AT debug" (at 35 40 0))
+  (text "Interfaces: CM4 SPI display, I2C sensors, I2S audio, USB modem, UART AT debug, CSI camera" (at 35 40 0))
+  (text "Cloud-first device requires reliable modem, camera, and local storage integration." (at 35 50 0))
 )

@@ -1,46 +1,49 @@
 from __future__ import annotations
 
-import os
 from typing import Any
+import os
 
 import requests
+
+from .interface import AdaptiveInterface
 
 
 class HybridRouter:
     def __init__(self, settings: dict, connectivity):
         self.settings = settings
         self.connectivity = connectivity
+        self.interface = AdaptiveInterface()
 
-    def generate(self, prompt: str, tools: list[str] | None = None) -> dict[str, Any]:
+    def generate(self, prompt: str, tools: list[str] | None = None, preferred_mode: str | None = None) -> dict[str, Any]:
+        interface_mode = preferred_mode or self.interface.resolve_mode(prompt)
         if self.connectivity.online:
             try:
-                return self._cloud_generate(prompt, tools or [])
+                return self._cloud_generate(prompt, tools or [], interface_mode)
             except Exception:
-                return self._local_generate(prompt)
-        return self._local_generate(prompt)
+                return self._local_generate(prompt, interface_mode)
+        return self._local_generate(prompt, interface_mode)
 
-    def _cloud_generate(self, prompt: str, tools: list[str]) -> dict[str, Any]:
-        xai = self.settings["xai"]
-        api_key = os.environ.get(xai["api_key_env"], "")
+    def _cloud_generate(self, prompt: str, tools: list[str], interface_mode: str) -> dict[str, Any]:
+        backend = self.settings["backend"]
+        token = os.environ.get(backend["auth_token_env"], "")
         response = requests.post(
-            f'{xai["base_url"]}/chat/completions',
+            f'{backend["base_url"]}/v1/query',
             timeout=30,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"Authorization": f"Bearer {token}"} if token else {},
             json={
-                "model": self.settings["models"]["cloud_model"],
-                "messages": [{"role": "user", "content": prompt}],
-                "metadata": {"device_mode": "edge-hybrid", "tools": tools},
+                "prompt": prompt,
+                "interface_mode": interface_mode,
+                "source": "device",
+                "tools": tools,
             },
         )
         response.raise_for_status()
         payload = response.json()
-        return {
-            "mode": "cloud",
-            "text": payload["choices"][0]["message"]["content"],
-            "raw": payload,
-        }
+        payload["mode"] = payload.get("mode", "cloud")
+        payload["interface_mode"] = payload.get("interface_mode", interface_mode)
+        return payload
 
-    def _local_generate(self, prompt: str) -> dict[str, Any]:
+    def _local_generate(self, prompt: str, interface_mode: str) -> dict[str, Any]:
         ollama = self.settings["ollama"]
         response = requests.post(
             f'{ollama["base_url"]}/api/generate',
@@ -49,4 +52,10 @@ class HybridRouter:
         )
         response.raise_for_status()
         payload = response.json()
-        return {"mode": "local", "text": payload.get("response", ""), "raw": payload}
+        return {
+            "mode": "local",
+            "interface_mode": interface_mode,
+            "text": payload.get("response", ""),
+            "reasoning": ["offline_fallback", "local_model"],
+            "raw": payload,
+        }

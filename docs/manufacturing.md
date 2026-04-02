@@ -8,11 +8,13 @@ Use a two-stage prototype path:
    - CM4 carrier
    - EC25 LTE modem
    - 3.2" SPI OLED
+   - CSI camera module
    - 3D printed enclosure
 2. EVT-B
    - Thin custom PCB spin
    - improved antenna placement
    - optional RM520N-GL 5G variant
+   - improved camera shield routing
    - gasketed enclosure and flex cabling cleanup
 
 ## JLCPCB / PCBWay Outputs
@@ -31,6 +33,7 @@ These are intended as the fabrication package skeleton for export from KiCad aft
 - 4-layer stackup minimum for RF and power integrity
 - Controlled keep-outs under antennas and modem RF feed lines
 - Avoid battery under high-temperature modem zones
+- Reserve uninterrupted CSI routing corridor to the camera connector
 - Maintain service access to SIM/eSIM debug points, USB-C, and SWD/UART
 - Use board stiffeners or internal ribbing to meet thinness target
 

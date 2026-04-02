@@ -8,6 +8,7 @@
 - CM4 `I2C1` -> touch controller, ambient light sensor, accelerometer, fuel gauge
 - CM4 `SPI0` -> OLED / e-paper display
 - CM4 `UART0` -> modem AT channel / debug
+- CM4 `CSI0` -> camera module
 - CM4 `GPIO` -> wake, hook, mute, fingerprint interrupt, PMIC status
 
 ## Power Rails
@@ -24,3 +25,10 @@
 - Digital mic -> I2S/PCM capture
 - AI TTS / call audio -> codec / amp -> speaker
 - Optional 3.5 mm or USB-C digital headset support
+
+## Imaging Path
+
+- CSI camera -> local capture service
+- Captured media -> local upload queue
+- Online: cloud vision / OCR analysis
+- Offline: metadata and thumbnail cache, deferred cloud analysis after sync
