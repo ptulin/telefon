@@ -6,9 +6,14 @@ import json
 def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     app_nav = """
     <div class="nav">
-      <div class="brand-wrap">
-        <div class="brand">Personal AI Phone</div>
-        <div class="tagline">A calmer assistant for everyday life</div>
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="brand-mark-dot"></span>
+          <span class="brand-mark-stem"></span>
+        </div>
+        <div class="brand-wrap">
+          <div class="brand">Telefon</div>
+        </div>
       </div>
       <div class="nav-links">
         <a href="/app">Home</a>
@@ -31,8 +36,8 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap');
     :root {{
-      --bg: #f4efe6;
-      --bg-accent: #ebe3d5;
+      --bg: #f4e7bf;
+      --bg-accent: #eadb9b;
       --surface: #fffdfa;
       --surface-2: #f7f1e7;
       --surface-3: #e9f0fb;
@@ -57,8 +62,9 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       font-family: "Atkinson Hyperlegible Next", "Segoe UI", Arial, sans-serif;
       color: var(--text);
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.72)),
-        radial-gradient(circle at top right, rgba(31,95,191,0.06), transparent 30%),
+        linear-gradient(180deg, rgba(255,252,244,0.56), rgba(255,252,244,0.56)),
+        radial-gradient(circle at top right, rgba(31,95,191,0.05), transparent 30%),
+        radial-gradient(circle at top left, rgba(255,214,102,0.22), transparent 32%),
         linear-gradient(180deg, var(--bg), var(--bg-accent));
     }}
     a {{ color: inherit; text-decoration: none; }}
@@ -87,16 +93,51 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       top: 0;
       z-index: 20;
       background: rgba(244, 239, 230, 0.92);
+      background: rgba(244, 231, 191, 0.94);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(156, 170, 176, 0.35);
     }}
+    .brand-lockup {{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }}
     .brand-wrap {{
       display: grid;
-      gap: 4px;
+      gap: 2px;
+    }}
+    .brand-mark {{
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #2f74d8, #1f5fbf);
+      display: grid;
+      place-items: center;
+      position: relative;
+      box-shadow: 0 10px 22px rgba(31, 95, 191, 0.24);
+    }}
+    .brand-mark-dot {{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #fff7de;
+      position: absolute;
+      top: 8px;
+      left: 16px;
+    }}
+    .brand-mark-stem {{
+      width: 10px;
+      height: 18px;
+      border-radius: 999px;
+      background: #fff7de;
+      position: absolute;
+      bottom: 8px;
+      left: 16px;
     }}
     .brand {{
-      font-size: 1.18rem;
+      font-size: 1.34rem;
       font-weight: 900;
+      letter-spacing: -0.02em;
     }}
     .tagline {{
       font-size: 0.94rem;
@@ -443,14 +484,18 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
 def render_landing_page() -> str:
     body = """
     <section class="hero">
-      <div class="brand-wrap">
-        <div class="brand">Personal AI Phone</div>
-        <div class="tagline">A calmer assistant for everyday life</div>
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="brand-mark-dot"></span>
+          <span class="brand-mark-stem"></span>
+        </div>
+        <div class="brand-wrap">
+          <div class="brand">Telefon</div>
+        </div>
       </div>
-      <div class="kicker">One helpful assistant</div>
       <h1>Stop hunting for apps. Ask for help once.</h1>
       <p>
-        Personal AI Phone is a calmer, easier way to use a phone. Instead of remembering where everything lives,
+        Telefon is a calmer, easier way to use a phone. Instead of remembering where everything lives,
         the user gets one assistant that can remember people, save preferences, send the app to their phone, and grow into a fuller AI companion over time.
       </p>
     </section>
