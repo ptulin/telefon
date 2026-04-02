@@ -307,14 +307,14 @@ def render_landing_page() -> str:
       <div class="panel">
         <div class="kicker">Create your account</div>
         <h2>We’ll keep it simple</h2>
-        <p class="small">We ask for your phone number now so your account is ready for future phone-native features, even though this beta sends links by email.</p>
+        <p class="small">We keep just the basics here: first name, last name, email, phone number, and password. Those details become your profile and your shareable contact card later.</p>
         <div class="form">
           <div class="row-2">
-            <label>Display name
-              <input id="register-display-name" placeholder="Pat" />
+            <label>First name
+              <input id="register-first-name" placeholder="Pat" />
             </label>
-            <label>Username
-              <input id="register-username" placeholder="pat-helper" />
+            <label>Last name
+              <input id="register-last-name" placeholder="Tulin" />
             </label>
           </div>
           <div class="row-2">
@@ -329,7 +329,7 @@ def render_landing_page() -> str:
             <input id="register-password" type="password" placeholder="At least 8 characters" />
           </label>
           <button onclick="registerUser()">Create my account</button>
-          <div id="register-status" class="status">After you join, we can text or email the app link for you.</div>
+          <div id="register-status" class="status">After you join, we can email the app link to you in one tap.</div>
         </div>
       </div>
 
@@ -337,8 +337,8 @@ def render_landing_page() -> str:
         <div class="kicker">Sign in</div>
         <h2>Return to your assistant</h2>
         <div class="form">
-          <label>Email or username
-            <input id="login-identifier" placeholder="you@example.com or username" />
+          <label>Email
+            <input id="login-email" type="email" placeholder="you@example.com" />
           </label>
           <label>Password
             <input id="login-password" type="password" placeholder="Password" />
@@ -350,8 +350,8 @@ def render_landing_page() -> str:
         <div class="summary-box" style="margin-top:16px;">
           <h3>Forgot your password?</h3>
           <div class="form">
-            <label>Email or username
-              <input id="help-identifier" placeholder="you@example.com or username" />
+            <label>Email
+              <input id="help-email" type="email" placeholder="you@example.com" />
             </label>
             <button class="secondary" onclick="sendPasswordHelp()">Email me a reset link</button>
             <div id="help-status" class="status">For this beta, recovery is email-first so it stays simple and reliable.</div>
@@ -367,7 +367,7 @@ def render_landing_page() -> str:
       </div>
       <div class="card">
         <h3>Phone-ready onboarding</h3>
-        <p>Instead of long install instructions, the app can send a link to the person’s phone by email or text.</p>
+        <p>Instead of long install instructions, the app can send a link to the person’s phone by email.</p>
       </div>
       <div class="card">
         <h3>Built for the future</h3>
@@ -381,8 +381,8 @@ def render_landing_page() -> str:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            display_name: document.getElementById('register-display-name').value,
-            username: document.getElementById('register-username').value,
+            first_name: document.getElementById('register-first-name').value,
+            last_name: document.getElementById('register-last-name').value,
             email: document.getElementById('register-email').value,
             phone_number: document.getElementById('register-phone').value,
             password: document.getElementById('register-password').value
@@ -403,7 +403,7 @@ def render_landing_page() -> str:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            identifier: document.getElementById('login-identifier').value,
+            email: document.getElementById('login-email').value,
             password: document.getElementById('login-password').value
           })
         });
@@ -422,7 +422,7 @@ def render_landing_page() -> str:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            identifier: document.getElementById('help-identifier').value,
+            email: document.getElementById('help-email').value,
             channel: 'email'
           })
         });
@@ -526,8 +526,16 @@ def render_app_page() -> str:
           <h2>Your account</h2>
           <div class="form">
             <div class="row-2">
-              <label>Display name
-                <input id="profile-display-name" />
+              <label>First name
+                <input id="profile-first-name" />
+              </label>
+              <label>Last name
+                <input id="profile-last-name" />
+              </label>
+            </div>
+            <div class="row-2">
+              <label>Email
+                <input id="profile-email" type="email" />
               </label>
               <label>Phone number
                 <input id="profile-phone-number" type="tel" />
@@ -551,7 +559,11 @@ def render_app_page() -> str:
               </label>
             </div>
             <button onclick="saveProfile()">Save my account</button>
-            <div id="profile-status" class="status">Your saved details also power texting the app link to your phone.</div>
+            <div id="profile-status" class="status">These details make up your profile and your future shareable contact card.</div>
+            <div class="summary-box">
+              <h3>My contact card</h3>
+              <div id="profile-card-summary" class="muted">Loading your saved profile.</div>
+            </div>
           </div>
         </div>
 
@@ -775,12 +787,18 @@ def render_app_page() -> str:
       function hydrateApp(data) {
         appState = data;
         buildTabs();
-        document.getElementById('welcome-name').textContent = 'Hello, ' + appState.user.display_name;
+        document.getElementById('welcome-name').textContent = 'Hello, ' + (appState.user.first_name || appState.user.display_name);
         document.getElementById('welcome-copy').textContent = 'Your assistant is set up to help and can send the app straight to your phone.';
-        document.getElementById('profile-display-name').value = appState.user.display_name || '';
+        document.getElementById('profile-first-name').value = appState.user.first_name || '';
+        document.getElementById('profile-last-name').value = appState.user.last_name || '';
+        document.getElementById('profile-email').value = appState.user.email || '';
         document.getElementById('profile-phone-number').value = appState.user.phone_number || '';
         document.getElementById('profile-voice-guidance').value = String(appState.state.accessibility.voice_guidance);
         document.getElementById('profile-text-scale').value = appState.state.accessibility.text_scale;
+        document.getElementById('profile-card-summary').innerHTML =
+          '<strong>' + appState.user.display_name + '</strong><br>' +
+          '<span>' + appState.user.email + '</span><br>' +
+          '<span>' + (appState.user.phone_number || 'No phone number saved yet.') + '</span>';
         document.getElementById('install-targets').textContent =
           'We can email the app link to ' + appState.user.email + '.';
         renderBriefing();
@@ -824,7 +842,9 @@ def render_app_page() -> str:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            display_name: document.getElementById('profile-display-name').value,
+            first_name: document.getElementById('profile-first-name').value,
+            last_name: document.getElementById('profile-last-name').value,
+            email: document.getElementById('profile-email').value,
             phone_number: document.getElementById('profile-phone-number').value,
             preference_summary: document.getElementById('profile-preference').value,
             voice_guidance: document.getElementById('profile-voice-guidance').value === 'true',
@@ -976,7 +996,7 @@ def render_app_page() -> str:
           div.className = 'item';
           div.innerHTML =
             '<strong>' + user.display_name + '</strong><br>' +
-            '<span class="muted">' + user.email + ' · ' + user.username + '</span><br>' +
+            '<span class="muted">' + user.email + '</span><br>' +
             '<span class="small muted">Phone: ' + (user.phone_number || 'none') + ' · Contacts: ' + user.contacts_count + ' · Memory: ' + user.memory_count + ' · Trusted: ' + user.trusted_count + '</span><br>' +
             '<span class="small muted">Admin: ' + (user.is_admin ? 'yes' : 'no') + ' · Disabled: ' + (user.is_disabled ? 'yes' : 'no') + '</span>' +
             '<div class="cta-row" style="margin-top:10px;"><button class="secondary" onclick="toggleUser(\\'' + user.user_id + '\\',' + (!user.is_disabled) + ')">' + (user.is_disabled ? 'Enable user' : 'Disable user') + '</button><button class="secondary" onclick="toggleAdmin(\\'' + user.user_id + '\\',' + (!user.is_admin) + ')">' + (user.is_admin ? 'Remove admin' : 'Make admin') + '</button></div>';

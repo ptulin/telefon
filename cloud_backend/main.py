@@ -79,20 +79,22 @@ class FactRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    display_name: str
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
     phone_number: str
     password: str
 
 
 class LoginRequest(BaseModel):
-    identifier: str
+    email: EmailStr
     password: str
 
 
 class ProfileUpdateRequest(BaseModel):
-    display_name: str
+    first_name: str
+    last_name: str
+    email: EmailStr
     phone_number: str = ""
     preference_summary: str = ""
     voice_guidance: bool = True
@@ -123,7 +125,7 @@ class LinkDeliveryRequest(BaseModel):
 
 
 class PasswordHelpRequest(BaseModel):
-    identifier: str
+    email: EmailStr
     channel: str = "email"
 
 
@@ -134,7 +136,9 @@ class PasswordResetRequest(BaseModel):
 
 class AdminUserUpdateRequest(BaseModel):
     user_id: str
-    display_name: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    email: str = ""
     phone_number: str = ""
     is_admin: Optional[bool] = None
     is_disabled: Optional[bool] = None
@@ -149,11 +153,11 @@ def _save_list(name: str, rows: list[dict]):
 
 
 def _load_users() -> list[dict]:
-    return store.load("users.json", [])
+    return [_ensure_user_shape(row) for row in store.load("users.json", [])]
 
 
 def _save_users(rows: list[dict]):
-    store.save("users.json", rows)
+    store.save("users.json", [_ensure_user_shape(row) for row in rows])
 
 
 def _user_record_key(user_id: str) -> str:
@@ -165,13 +169,43 @@ def _user_lookup_key(kind: str, value: str) -> str:
     return f"user-lookup-{kind}-{digest}.json"
 
 
+def _compose_display_name(first_name: str, last_name: str, email: str = "") -> str:
+    full_name = " ".join(part for part in [first_name.strip(), last_name.strip()] if part.strip()).strip()
+    if full_name:
+        return full_name
+    if email.strip():
+        return email.split("@", 1)[0]
+    return "Friend"
+
+
+def _ensure_user_shape(user: dict | None) -> dict | None:
+    if not user:
+        return None
+    normalized = dict(user)
+    first_name = normalized.get("first_name", "").strip()
+    last_name = normalized.get("last_name", "").strip()
+    if not first_name and not last_name:
+        display_name = normalized.get("display_name", "").strip()
+        if display_name:
+            parts = display_name.split(" ", 1)
+            first_name = parts[0].strip()
+            last_name = parts[1].strip() if len(parts) > 1 else ""
+    normalized["first_name"] = first_name
+    normalized["last_name"] = last_name
+    normalized["display_name"] = _compose_display_name(first_name, last_name, normalized.get("email", ""))
+    if not normalized.get("username"):
+        normalized["username"] = normalized.get("email", "").split("@", 1)[0] or normalized.get("user_id", "")
+    return normalized
+
+
 def _save_user_record(user: dict):
+    user = _ensure_user_shape(user)
     store.save(_user_record_key(user["user_id"]), user)
     store.save(_user_lookup_key("email", user["email"]), {"user_id": user["user_id"]})
-    store.save(_user_lookup_key("username", user["username"]), {"user_id": user["user_id"]})
 
 
 def _replace_user_in_index(user: dict):
+    user = _ensure_user_shape(user)
     users = _load_users()
     replaced = False
     for idx, row in enumerate(users):
@@ -198,10 +232,12 @@ def _is_admin(user: dict) -> bool:
 
 
 def _default_user_state(user: dict) -> dict:
+    user = _ensure_user_shape(user)
     return {
         "profile": {
+            "first_name": user["first_name"],
+            "last_name": user["last_name"],
             "display_name": user["display_name"],
-            "username": user["username"],
             "email": user["email"],
             "phone_number": user.get("phone_number", ""),
         },
@@ -238,12 +274,15 @@ def _legacy_section_state(user_id: str, defaults: dict) -> dict:
 
 
 def _normalize_user_state(user: dict, state: dict | None) -> dict:
+    user = _ensure_user_shape(user)
     defaults = _default_user_state(user)
     current = state or {}
+    profile = current.get("profile", {})
     normalized = {
         "profile": {
+            "first_name": profile.get("first_name", user["first_name"]),
+            "last_name": profile.get("last_name", user["last_name"]),
             "display_name": user["display_name"],
-            "username": user["username"],
             "email": user["email"],
             "phone_number": user.get("phone_number", ""),
         },
@@ -291,11 +330,18 @@ def _load_user_state(user_id: str, user: dict | None = None) -> dict:
 
 
 def _save_user_state(user_id: str, state: dict, user: dict | None = None):
-    user = user or _find_user_by_id(user_id) or {
-        "display_name": state.get("profile", {}).get("display_name", "User"),
-        "username": state.get("profile", {}).get("username", user_id),
-        "email": state.get("profile", {}).get("email", ""),
-    }
+    profile = state.get("profile", {})
+    user = _ensure_user_shape(
+        user
+        or _find_user_by_id(user_id)
+        or {
+            "first_name": profile.get("first_name", "Friend"),
+            "last_name": profile.get("last_name", ""),
+            "display_name": profile.get("display_name", "Friend"),
+            "email": profile.get("email", ""),
+            "user_id": user_id,
+        }
+    )
     store.save(_user_state_key(user_id), _normalize_user_state(user, state))
 
 
@@ -303,28 +349,27 @@ def _find_user_by_id(user_id: str) -> dict | None:
     for _ in range(4):
         found = store.load(_user_record_key(user_id), None)
         if found:
-            return found
+            return _ensure_user_shape(found)
         found = next((user for user in _load_users() if user["user_id"] == user_id), None)
         if found:
-            return found
+            return _ensure_user_shape(found)
         time.sleep(0.2)
     return None
 
 
-def _find_user(identifier: str) -> dict | None:
-    lowered = identifier.lower().strip()
+def _find_user(email: str) -> dict | None:
+    lowered = email.lower().strip()
     for _ in range(4):
-        for kind in ("email", "username"):
-            lookup = store.load(_user_lookup_key(kind, lowered), None)
-            if lookup and lookup.get("user_id"):
-                found = _find_user_by_id(lookup["user_id"])
-                if found:
-                    return found
+        lookup = store.load(_user_lookup_key("email", lowered), None)
+        if lookup and lookup.get("user_id"):
+            found = _find_user_by_id(lookup["user_id"])
+            if found:
+                return _ensure_user_shape(found)
         found = next(
             (
                 user
                 for user in _load_users()
-                if user["email"].lower() == lowered or user["username"].lower() == lowered
+                if user["email"].lower() == lowered
             ),
             None,
         )
@@ -332,19 +377,20 @@ def _find_user(identifier: str) -> dict | None:
             if found.get("user_id") and "password_salt" not in found:
                 hydrated = _find_user_by_id(found["user_id"])
                 if hydrated:
-                    return hydrated
-            return found
+                    return _ensure_user_shape(hydrated)
+            return _ensure_user_shape(found)
         time.sleep(0.2)
     return None
 
 
 def _create_session(user: dict) -> str:
+    user = _ensure_user_shape(user)
     issued_at = utc_now()
     payload = "|".join(
         [
             user["user_id"],
-            user["display_name"],
-            user["username"],
+            user["first_name"],
+            user["last_name"],
             user["email"],
             user.get("phone_number", ""),
             "1" if _is_admin(user) else "0",
@@ -359,17 +405,18 @@ def _create_session(user: dict) -> str:
 def _decode_session(token: str) -> dict | None:
     try:
         decoded = base64.urlsafe_b64decode(token.encode("utf-8")).decode("utf-8")
-        user_id, display_name, username, email, phone_number, is_admin_flag, issued_at, signature = decoded.split("|", 7)
+        user_id, first_name, last_name, email, phone_number, is_admin_flag, issued_at, signature = decoded.split("|", 7)
     except Exception:
         return None
-    payload = "|".join([user_id, display_name, username, email, phone_number, is_admin_flag, issued_at])
+    payload = "|".join([user_id, first_name, last_name, email, phone_number, is_admin_flag, issued_at])
     expected = hmac.new(SESSION_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, signature):
         return None
     return {
         "user_id": user_id,
-        "display_name": display_name,
-        "username": username,
+        "first_name": first_name,
+        "last_name": last_name,
+        "display_name": _compose_display_name(first_name, last_name, email),
         "email": email,
         "phone_number": phone_number,
         "is_admin": is_admin_flag == "1",
@@ -386,8 +433,9 @@ def _current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="invalid session")
     return {
         "user_id": session["user_id"],
+        "first_name": session["first_name"],
+        "last_name": session["last_name"],
         "display_name": session["display_name"],
-        "username": session["username"],
         "email": session["email"],
         "phone_number": session.get("phone_number", ""),
         "is_admin": session.get("is_admin", False),
@@ -550,12 +598,14 @@ def _all_users() -> list[dict]:
 
 
 def _admin_user_summary(user: dict) -> dict[str, Any]:
+    user = _ensure_user_shape(user)
     state = _load_user_state(user["user_id"], user)
     memory_count = sum(len(state.get(bucket, [])) for bucket in ("preferences", "habits", "relationships", "life_details"))
     return {
         "user_id": user["user_id"],
+        "first_name": user["first_name"],
+        "last_name": user["last_name"],
         "display_name": user["display_name"],
-        "username": user["username"],
         "email": user["email"],
         "phone_number": user.get("phone_number", ""),
         "created_at": user.get("created_at", ""),
@@ -606,7 +656,7 @@ def app_page(request: Request):
 def download_page(request: Request):
     try:
         user = _current_user(request)
-        return HTMLResponse(render_download_page(user["display_name"]))
+        return HTMLResponse(render_download_page(user["first_name"] or user["display_name"]))
     except HTTPException:
         return RedirectResponse("/", status_code=302)
 
@@ -628,17 +678,21 @@ def register(payload: RegisterRequest):
     phone_number = _normalize_phone(payload.phone_number)
     if not phone_number:
         raise HTTPException(status_code=400, detail="phone number is required")
+    first_name = payload.first_name.strip()
+    last_name = payload.last_name.strip()
+    if not first_name or not last_name:
+        raise HTTPException(status_code=400, detail="first name and last name are required")
     if _find_user(payload.email):
         raise HTTPException(status_code=400, detail="email is already registered")
-    if _find_user(payload.username):
-        raise HTTPException(status_code=400, detail="username is already taken")
 
     users = _load_users()
     salt = secrets.token_hex(16)
     user = {
         "user_id": secrets.token_hex(12),
-        "display_name": payload.display_name.strip() or payload.username.strip(),
-        "username": payload.username.strip(),
+        "first_name": first_name,
+        "last_name": last_name,
+        "display_name": _compose_display_name(first_name, last_name, payload.email.strip()),
+        "username": payload.email.strip().split("@", 1)[0],
         "email": payload.email.strip(),
         "phone_number": phone_number,
         "password_salt": salt,
@@ -654,14 +708,14 @@ def register(payload: RegisterRequest):
     _save_user_state(user["user_id"], _default_user_state(user), user)
 
     token = _create_session(user)
-    response = JSONResponse({"ok": True, "user": {"display_name": user["display_name"], "username": user["username"]}})
+    response = JSONResponse({"ok": True, "user": {"first_name": user["first_name"], "last_name": user["last_name"], "display_name": user["display_name"]}})
     response.set_cookie(SESSION_COOKIE, token, httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30)
     return response
 
 
 @app.post("/auth/login")
 def login(payload: LoginRequest):
-    user = _find_user(payload.identifier)
+    user = _find_user(payload.email)
     if not user:
         raise HTTPException(status_code=401, detail="account not found")
     if user.get("user_id") and "password_salt" not in user:
@@ -678,7 +732,7 @@ def login(payload: LoginRequest):
     _replace_user_in_index(user)
     _save_user_record(user)
     token = _create_session(user)
-    response = JSONResponse({"ok": True, "user": {"display_name": user["display_name"], "username": user["username"]}})
+    response = JSONResponse({"ok": True, "user": {"first_name": user["first_name"], "last_name": user["last_name"], "display_name": user["display_name"]}})
     response.set_cookie(SESSION_COOKIE, token, httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30)
     return response
 
@@ -692,7 +746,7 @@ def logout(request: Request):
 
 @app.post("/auth/password-help")
 def password_help(payload: PasswordHelpRequest, request: Request):
-    user = _find_user(payload.identifier)
+    user = _find_user(payload.email)
     if not user:
         return {"ok": True, "message": "If that account exists, password help is ready."}
     return _create_password_reset(user, request, payload.channel)
@@ -724,8 +778,9 @@ def auth_me(request: Request):
     state = _load_user_state(user["user_id"], full_user)
     return {
         "user": {
+            "first_name": full_user["first_name"],
+            "last_name": full_user["last_name"],
             "display_name": full_user["display_name"],
-            "username": full_user["username"],
             "email": full_user["email"],
             "phone_number": full_user.get("phone_number", ""),
             "is_admin": _is_admin(full_user),
@@ -747,8 +802,9 @@ def app_bootstrap(request: Request):
     state = _load_user_state(user["user_id"], full_user)
     return {
         "user": {
+            "first_name": full_user["first_name"],
+            "last_name": full_user["last_name"],
             "display_name": full_user["display_name"],
-            "username": full_user["username"],
             "email": full_user["email"],
             "phone_number": full_user.get("phone_number", ""),
             "is_admin": _is_admin(full_user),
@@ -789,10 +845,15 @@ def admin_update_user(payload: AdminUserUpdateRequest, request: Request):
     target = _find_user_by_id(payload.user_id)
     if not target:
         raise HTTPException(status_code=404, detail="user not found")
-    if payload.display_name.strip():
-        target["display_name"] = payload.display_name.strip()
+    if payload.first_name.strip():
+        target["first_name"] = payload.first_name.strip()
+    if payload.last_name.strip():
+        target["last_name"] = payload.last_name.strip()
+    if payload.email.strip():
+        target["email"] = payload.email.strip().lower()
     if payload.phone_number.strip():
         target["phone_number"] = _normalize_phone(payload.phone_number)
+    target["display_name"] = _compose_display_name(target.get("first_name", ""), target.get("last_name", ""), target.get("email", ""))
     if payload.is_admin is not None:
         target["is_admin"] = payload.is_admin
     if payload.is_disabled is not None:
@@ -800,7 +861,10 @@ def admin_update_user(payload: AdminUserUpdateRequest, request: Request):
     _replace_user_in_index(target)
     _save_user_record(target)
     state = _load_user_state(target["user_id"], target)
+    state["profile"]["first_name"] = target["first_name"]
+    state["profile"]["last_name"] = target["last_name"]
     state["profile"]["display_name"] = target["display_name"]
+    state["profile"]["email"] = target["email"]
     state["profile"]["phone_number"] = target.get("phone_number", "")
     _save_user_state(target["user_id"], state, target)
     return {"ok": True, "user": _admin_user_summary(target)}
@@ -820,7 +884,15 @@ def update_profile(payload: ProfileUpdateRequest, request: Request):
     users = _load_users()
     for row in users:
         if row["user_id"] == user["user_id"]:
-            row["display_name"] = payload.display_name.strip() or row["display_name"]
+            proposed_email = payload.email.strip().lower()
+            if proposed_email != row["email"]:
+                existing = _find_user(proposed_email)
+                if existing and existing["user_id"] != row["user_id"]:
+                    raise HTTPException(status_code=400, detail="email is already registered")
+            row["first_name"] = payload.first_name.strip() or row.get("first_name", "")
+            row["last_name"] = payload.last_name.strip() or row.get("last_name", "")
+            row["email"] = proposed_email
+            row["display_name"] = _compose_display_name(row["first_name"], row["last_name"], row["email"])
             row["phone_number"] = _normalize_phone(payload.phone_number) or row.get("phone_number", "")
             user = row
             break
@@ -838,13 +910,22 @@ def update_profile(payload: ProfileUpdateRequest, request: Request):
                 "created_at": utc_now(),
             }
         ]
+    state["profile"]["first_name"] = user["first_name"]
+    state["profile"]["last_name"] = user["last_name"]
     state["profile"]["display_name"] = user["display_name"]
+    state["profile"]["email"] = user["email"]
     state["profile"]["phone_number"] = user.get("phone_number", "")
     _save_user_state(user["user_id"], state, user)
     return {
         "ok": True,
         "state": state,
-        "user": {"display_name": user["display_name"], "username": user["username"], "email": user["email"]},
+        "user": {
+            "first_name": user["first_name"],
+            "last_name": user["last_name"],
+            "display_name": user["display_name"],
+            "email": user["email"],
+            "phone_number": user.get("phone_number", ""),
+        },
         "daily_briefing": _build_daily_briefing(state),
     }
 
