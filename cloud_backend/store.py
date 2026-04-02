@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import os
+import time
 
 import requests
 
@@ -42,12 +43,15 @@ class SupabaseStorageJsonStore(JsonStore):
         self.bucket = bucket
         self.prefix = prefix.strip("/")
 
-    def _headers(self, content_type: str = "application/json") -> dict:
-        return {
+    def _headers(self, content_type: str = "application/json", *, upsert: bool = False) -> dict:
+        headers = {
             "Authorization": f"Bearer {self.service_role_key}",
             "apikey": self.service_role_key,
             "Content-Type": content_type,
         }
+        if upsert:
+            headers["x-upsert"] = "true"
+        return headers
 
     def _object_path(self, name: str) -> str:
         return f"{self.prefix}/{name}" if self.prefix else name
@@ -75,7 +79,12 @@ class SupabaseStorageJsonStore(JsonStore):
         response = requests.get(
             f"{self.base_url}/storage/v1/object/authenticated/{self.bucket}/{object_path}",
             timeout=20,
-            headers=self._headers("application/json"),
+            headers={
+                **self._headers("application/json"),
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            },
+            params={"t": str(time.time_ns())},
         )
         if response.status_code in (400, 404):
             return default
@@ -87,20 +96,9 @@ class SupabaseStorageJsonStore(JsonStore):
         response = requests.post(
             f"{self.base_url}/storage/v1/object/{self.bucket}/{object_path}",
             timeout=20,
-            headers={**self._headers("application/json"), "x-upsert": "true"},
+            headers=self._headers("application/json", upsert=True),
             data=json.dumps(value),
         )
-        if response.status_code in (200, 201):
-            return
-        if response.status_code == 400 and "Duplicate" in response.text:
-            update = requests.put(
-                f"{self.base_url}/storage/v1/object/{self.bucket}/{object_path}",
-                timeout=20,
-                headers={**self._headers("application/json"), "x-upsert": "true"},
-                data=json.dumps(value),
-            )
-            update.raise_for_status()
-            return
         response.raise_for_status()
 
 

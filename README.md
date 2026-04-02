@@ -1,6 +1,6 @@
 # Personal AI Phone
 
-Personal AI Phone is a smartphone-first prototype for a simplified AI operating layer that can gradually replace the normal app model.
+Personal AI Phone is now a web-first, smartphone-friendly prototype for a simplified AI operating layer that can gradually replace the normal app model.
 
 The product goal is straightforward:
 
@@ -10,7 +10,7 @@ The product goal is straightforward:
 - persistent personal memory across phone, desktop, and cloud
 - a path toward future agent-to-agent coordination and eventually a dedicated thin-client device
 
-This branch reframes the project from a custom edge-device-first concept into a normal-smartphone MVP that can help older or non-technical users with calling, calendar, reminders, camera help, documents, and daily tasks.
+This branch reframes the project from a custom edge-device-first concept into a normal-smartphone MVP that can help older or non-technical users with calling, memory, trusted contacts, onboarding, install-to-phone flows, and later calendar, camera, and delegated task support.
 
 ## Product Direction
 
@@ -21,13 +21,13 @@ The app is meant to become an AI operating layer in stages:
 3. Coordinate with other agents and services over the internet.
 4. Eventually reduce dependence on the traditional smartphone UI entirely.
 
-## Core MVP
+## Current Web Product
 
-- Contacts lookup and voice-driven call initiation
-- Calendar read/create/update with AI confirmation
+- Public landing page with account creation and sign-in
+- Older-user-friendly dashboard with large text and large touch targets
 - Memory vault for habits, preferences, relationships, and life details
-- Camera and document understanding
-- Reminders and daily briefings
+- Trusted-circle and shared-contact account model
+- Install page for adding the web app to a phone home screen
 - Unified AI interface with adaptive modes:
   - `talk`
   - `call`
@@ -35,6 +35,15 @@ The app is meant to become an AI operating layer in stages:
   - `camera`
   - `documents`
   - `memory`
+- Daily briefing and quick action prompts
+
+## Core MVP Direction
+
+- Contacts lookup and voice-driven call initiation
+- Calendar read/create/update with AI confirmation
+- Camera and document understanding
+- Reminders and daily briefings
+- Future native app reuse of the same account and profile
 
 ## Forward-Looking Architecture
 
@@ -80,6 +89,7 @@ Hosted prototype target:
 - Vercel for API hosting
 - Supabase Storage for canonical state persistence
 - Current live API: `https://telefon-phi.vercel.app`
+- Current live web app: `https://telefon-phi.vercel.app`
 
 ### Desktop App
 
