@@ -119,7 +119,7 @@ class AppMemoryRequest(BaseModel):
 
 
 class LinkDeliveryRequest(BaseModel):
-    channel: str
+    channel: str = "email"
 
 
 class PasswordHelpRequest(BaseModel):
@@ -488,25 +488,13 @@ def _send_sms_via_twilio(to_phone: str, body: str) -> bool:
 
 
 def _deliver_install_link(user: dict, request: Request, channel: str) -> dict[str, Any]:
+    if channel != "email":
+        raise HTTPException(status_code=400, detail="email delivery is enabled for this beta")
     app_url = _public_app_url(request)
     message = (
         f"Open your Personal AI Phone here: {app_url} "
         f"and sign in as {user['email']}."
     )
-    if channel == "sms":
-        phone = user.get("phone_number", "")
-        if not phone:
-            raise HTTPException(status_code=400, detail="add a phone number first")
-        if _send_sms_via_twilio(phone, message):
-            return {"ok": True, "delivery": "sms-sent", "message": f"Text message sent to {phone}."}
-        sms_url = f"sms:{phone}?body={quote(message)}"
-        return {
-            "ok": True,
-            "delivery": "sms-compose",
-            "message": f"Opening your message app for {phone}.",
-            "action_url": sms_url,
-        }
-
     email = user["email"]
     subject = "Your Personal AI Phone link"
     html = (
@@ -525,6 +513,8 @@ def _deliver_install_link(user: dict, request: Request, channel: str) -> dict[st
 
 
 def _create_password_reset(user: dict, request: Request, channel: str) -> dict[str, Any]:
+    if channel != "email":
+        raise HTTPException(status_code=400, detail="email password recovery is enabled for this beta")
     token = secrets.token_urlsafe(24)
     reset_url = _public_app_url(request, f"/reset-password?token={token}")
     store.save(
@@ -537,11 +527,6 @@ def _create_password_reset(user: dict, request: Request, channel: str) -> dict[s
     message = (
         f"Reset your Personal AI Phone password here: {reset_url}"
     )
-    if channel == "sms" and user.get("phone_number"):
-        if _send_sms_via_twilio(user["phone_number"], message):
-            return {"ok": True, "delivery": "sms-sent", "message": f"Password reset text sent to {user['phone_number']}."}
-        return {"ok": True, "delivery": "direct-link", "message": "Open the reset page to choose a new password.", "action_url": reset_url}
-
     if _send_email_via_resend(
         user["email"],
         "Reset your Personal AI Phone password",

@@ -307,7 +307,7 @@ def render_landing_page() -> str:
       <div class="panel">
         <div class="kicker">Create your account</div>
         <h2>We’ll keep it simple</h2>
-        <p class="small">We ask for your phone number so we can send the app link directly to you later.</p>
+        <p class="small">We ask for your phone number now so your account is ready for future phone-native features, even though this beta sends links by email.</p>
         <div class="form">
           <div class="row-2">
             <label>Display name
@@ -353,11 +353,8 @@ def render_landing_page() -> str:
             <label>Email or username
               <input id="help-identifier" placeholder="you@example.com or username" />
             </label>
-            <div class="row-2">
-              <button class="secondary" onclick="sendPasswordHelp('email')">Send reset by email</button>
-              <button class="secondary" onclick="sendPasswordHelp('sms')">Send reset by text</button>
-            </div>
-            <div id="help-status" class="status">We’ll help you get back in with the easiest available method.</div>
+            <button class="secondary" onclick="sendPasswordHelp()">Email me a reset link</button>
+            <div id="help-status" class="status">For this beta, recovery is email-first so it stays simple and reliable.</div>
           </div>
         </div>
       </div>
@@ -420,13 +417,13 @@ def render_landing_page() -> str:
         window.location.href = '/app';
       }
 
-      async function sendPasswordHelp(channel) {
+      async function sendPasswordHelp() {
         const res = await fetch('/auth/password-help', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             identifier: document.getElementById('help-identifier').value,
-            channel
+            channel: 'email'
           })
         });
         const data = await res.json();
@@ -500,22 +497,16 @@ def render_app_page() -> str:
           <div class="panel">
             <div class="kicker">Send it to my phone</div>
             <h2>One tap is better than instructions</h2>
-            <p class="help-note" id="install-targets">Loading your saved email and phone number.</p>
-            <div class="row-2">
-              <button onclick="sendInstallLink('sms')">Text me the app</button>
-              <button class="secondary" onclick="sendInstallLink('email')">Email me the app</button>
-            </div>
-            <div id="install-status" class="status">We’ll use the easiest available delivery method for your account.</div>
+            <p class="help-note" id="install-targets">Loading your saved email address.</p>
+            <button onclick="sendInstallLink()">Email me the app</button>
+            <div id="install-status" class="status">For this beta, we send the app link by email so onboarding stays predictable.</div>
           </div>
 
           <div class="panel">
             <div class="kicker">Easy recovery</div>
             <h2>Password help</h2>
-            <p class="small">If you ever forget your password, we can send a reset link to your email or phone.</p>
-            <div class="row-2">
-              <button class="secondary" onclick="sendSignedInPasswordHelp('email')">Send reset by email</button>
-              <button class="secondary" onclick="sendSignedInPasswordHelp('sms')">Send reset by text</button>
-            </div>
+            <p class="small">If you ever forget your password, we can email you a reset link right away.</p>
+            <button class="secondary" onclick="sendSignedInPasswordHelp()">Email me a reset link</button>
             <div id="password-help-status" class="status">This is here so support is always close by.</div>
           </div>
 
@@ -791,7 +782,7 @@ def render_app_page() -> str:
         document.getElementById('profile-voice-guidance').value = String(appState.state.accessibility.voice_guidance);
         document.getElementById('profile-text-scale').value = appState.state.accessibility.text_scale;
         document.getElementById('install-targets').textContent =
-          'We can send the app to ' + (appState.user.phone_number || 'your saved phone') + ' or ' + appState.user.email + '.';
+          'We can email the app link to ' + appState.user.email + '.';
         renderBriefing();
         renderContacts();
         renderTrusted();
@@ -931,27 +922,37 @@ def render_app_page() -> str:
         setTab('profile');
       }
 
-      async function sendInstallLink(channel) {
+      async function sendInstallLink() {
         const res = await fetch('/app/api/install-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel })
+          body: JSON.stringify({ channel: 'email' })
         });
         const data = await res.json();
         const el = document.getElementById('install-status');
+        if (!res.ok) {
+          el.textContent = data.detail || 'Could not prepare the install email.';
+          el.className = 'status warning-text';
+          return;
+        }
         el.textContent = data.message || 'Install link is ready.';
         el.className = 'status success';
         if (data.action_url) window.open(data.action_url, '_blank');
       }
 
-      async function sendSignedInPasswordHelp(channel) {
+      async function sendSignedInPasswordHelp() {
         const res = await fetch('/app/api/password-help', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel })
+          body: JSON.stringify({ channel: 'email' })
         });
         const data = await res.json();
         const el = document.getElementById('password-help-status');
+        if (!res.ok) {
+          el.textContent = data.detail || 'Could not prepare password help.';
+          el.className = 'status warning-text';
+          return;
+        }
         el.textContent = data.message || 'Password help is ready.';
         el.className = 'status success';
         if (data.action_url) window.open(data.action_url, '_blank');
@@ -1050,17 +1051,14 @@ def render_download_page(user_name: str) -> str:
       </div>
       <div class="kicker">Send the app to your phone</div>
       <h1>We can send the link for you.</h1>
-      <p>Hello __USER_NAME__. Instead of asking you to remember steps, this screen focuses on the easiest path: send the app to your phone by text or email.</p>
+      <p>Hello __USER_NAME__. Instead of asking you to remember steps, this screen focuses on the easiest beta path: email the app link to yourself and open it on your phone.</p>
     </section>
 
     <section class="grid-2">
       <div class="panel">
         <h2>Choose the easiest option</h2>
-        <div class="row-2">
-          <button onclick="sendInstallLink('sms')">Text me the app</button>
-          <button class="secondary" onclick="sendInstallLink('email')">Email me the app</button>
-        </div>
-        <div id="install-status" class="status" style="margin-top:14px;">We’ll use your saved phone number or email.</div>
+        <button onclick="sendInstallLink()">Email me the app</button>
+        <div id="install-status" class="status" style="margin-top:14px;">We’ll use your saved email address for this beta.</div>
       </div>
 
       <div class="panel">
@@ -1074,14 +1072,19 @@ def render_download_page(user_name: str) -> str:
     </section>
 
     <script>
-      async function sendInstallLink(channel) {
+      async function sendInstallLink() {
         const res = await fetch('/app/api/install-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel })
+          body: JSON.stringify({ channel: 'email' })
         });
         const data = await res.json();
         const el = document.getElementById('install-status');
+        if (!res.ok) {
+          el.textContent = data.detail || 'Could not prepare the install email.';
+          el.className = 'status warning-text';
+          return;
+        }
         el.textContent = data.message || 'Your install link is ready.';
         el.className = 'status success';
         if (data.action_url) window.open(data.action_url, '_blank');
