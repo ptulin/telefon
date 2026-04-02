@@ -26,7 +26,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       <div class="nav-links">
         <a href="/app">Home</a>
         <a href="/download">Install</a>
-        <button type="button" class="nav-button" onclick="window.setTab && window.setTab('profile')">Profile</button>
+        <a href="/app#profile">Profile</a>
         <button type="button" class="nav-button" onclick="window.logoutUser && window.logoutUser()">Sign out</button>
       </div>
     </div>
@@ -177,6 +177,45 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+    }}
+    .feature-carousel {{
+      display: grid;
+      gap: 12px;
+    }}
+    .feature-carousel-card {{
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      padding: 14px 18px;
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: var(--shadow-soft);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }}
+    .feature-carousel-title {{
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.35;
+    }}
+    .feature-carousel-meta {{
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }}
+    .feature-dot {{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #c6d0d6;
+      transition: transform 180ms ease, background 180ms ease;
+    }}
+    .feature-dot.active {{
+      background: var(--accent);
+      transform: scale(1.15);
     }}
     .badge, .tab-button {{
       border-radius: 999px;
@@ -359,6 +398,10 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
         justify-content: center;
         text-align: center;
       }}
+      .feature-carousel-card {{
+        border-radius: 20px;
+        min-height: 84px;
+      }}
       .cta-row > * {{
         flex-basis: 100%;
       }}
@@ -392,6 +435,13 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     {body}
   </main>
   <script>
+    window.logoutUser = async function logoutUser() {{
+      try {{
+        await fetch('/auth/logout', {{ method: 'POST' }});
+      }} finally {{
+        window.location.href = '/';
+      }}
+    }};
     if ('serviceWorker' in navigator) {{
       window.addEventListener('load', () => {{
         navigator.serviceWorker.register('/sw.js').catch(() => {{}});
@@ -406,10 +456,15 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
 def render_landing_page() -> str:
     body = """
     <section class="hero">
-      <div class="badge-row">
-        <div class="badge"><strong>Friend-testable v1</strong> no app store required</div>
-        <div class="badge">Email the app to your phone</div>
-        <div class="badge">Keep contacts, memory, and helpers together</div>
+      <div class="feature-carousel" aria-live="polite">
+        <div class="feature-carousel-card">
+          <div class="feature-carousel-title" id="landing-feature-title">Friend-testable v1 with no app store required</div>
+        </div>
+        <div class="feature-carousel-meta" id="landing-feature-dots" aria-hidden="true">
+          <span class="feature-dot active"></span>
+          <span class="feature-dot"></span>
+          <span class="feature-dot"></span>
+        </div>
       </div>
       <div class="kicker">One helpful assistant</div>
       <h1>Stop hunting for apps. Ask for help once.</h1>
@@ -444,7 +499,7 @@ def render_landing_page() -> str:
           <label>Password
             <input id="register-password" type="password" placeholder="At least 8 characters" />
           </label>
-          <button onclick="registerUser()">Create my account</button>
+          <button id="register-button" onclick="registerUser()">Create my account</button>
           <div id="register-status" class="status">After you join, we can email the app link to you in one tap.</div>
         </div>
       </div>
@@ -459,7 +514,7 @@ def render_landing_page() -> str:
           <label>Password
             <input id="login-password" type="password" placeholder="Password" />
           </label>
-          <button onclick="loginUser()">Open my assistant</button>
+          <button id="login-button" onclick="loginUser()">Open my assistant</button>
           <div id="login-status" class="status">After signing in, you can send the app link to your phone with one tap.</div>
         </div>
 
@@ -469,29 +524,20 @@ def render_landing_page() -> str:
             <label>Email
               <input id="help-email" type="email" placeholder="you@example.com" />
             </label>
-            <button class="secondary" onclick="sendPasswordHelp()">Email me a reset link</button>
+            <button id="help-button" class="secondary" onclick="sendPasswordHelp()">Email me a reset link</button>
             <div id="help-status" class="status">For this beta, recovery is email-first so it stays simple and reliable.</div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="grid-3">
-      <div class="card">
-        <h3>Your profile becomes your contact card</h3>
-        <p>Save your name, email, and phone once so your assistant can use the same identity everywhere.</p>
-      </div>
-      <div class="card">
-        <h3>Email the app to your phone</h3>
-        <p>After sign-in, send yourself the app link and open the same account on your phone right away.</p>
-      </div>
-      <div class="card">
-        <h3>Keep helpers and contacts in one place</h3>
-        <p>Store family, caregivers, and important people so the assistant can become more useful over time.</p>
-      </div>
-    </section>
-
     <script>
+      const landingFeatures = [
+        'Friend-testable v1 with no app store required',
+        'Email the app to your phone after sign-in',
+        'Keep contacts, memory, and helpers together'
+      ];
+
       function normalizeEmail(value) {
         return (value || '').trim().toLowerCase();
       }
@@ -515,6 +561,18 @@ def render_landing_page() -> str:
         });
       }
 
+      function startFeatureCarousel() {
+        const title = document.getElementById('landing-feature-title');
+        const dots = Array.from(document.querySelectorAll('#landing-feature-dots .feature-dot'));
+        if (!title || dots.length !== landingFeatures.length) return;
+        let current = 0;
+        window.setInterval(() => {
+          current = (current + 1) % landingFeatures.length;
+          title.textContent = landingFeatures[current];
+          dots.forEach((dot, index) => dot.classList.toggle('active', index === current));
+        }, 3000);
+      }
+
       function apiMessage(data, fallback) {
         if (!data) return fallback;
         if (typeof data.detail === 'string') return data.detail;
@@ -535,6 +593,15 @@ def render_landing_page() -> str:
         return false;
       }
 
+      function setButtonBusy(id, busyText, idleText, busy) {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.disabled = busy;
+        button.textContent = busy ? busyText : idleText;
+        button.style.opacity = busy ? '0.75' : '1';
+        button.style.cursor = busy ? 'progress' : 'pointer';
+      }
+
       async function registerUser() {
         const firstName = document.getElementById('register-first-name').value.trim();
         const lastName = document.getElementById('register-last-name').value.trim();
@@ -546,6 +613,10 @@ def render_landing_page() -> str:
         if (!requireValue(email, 'Enter your email address.', 'register-status')) return;
         if (!requireValue(phone, 'Enter your phone number.', 'register-status')) return;
         if (!requireValue(password, 'Create a password.', 'register-status')) return;
+        const status = document.getElementById('register-status');
+        status.textContent = 'Creating your account...';
+        status.className = 'status';
+        setButtonBusy('register-button', 'Creating your account...', 'Create my account', true);
         const res = await fetch('/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -558,12 +629,15 @@ def render_landing_page() -> str:
           })
         });
         const data = await res.json();
+        setButtonBusy('register-button', 'Creating your account...', 'Create my account', false);
         const el = document.getElementById('register-status');
         if (!res.ok) {
           el.textContent = apiMessage(data, 'Registration failed.');
           el.className = 'status warning-text';
           return;
         }
+        el.textContent = 'Account created. Opening your assistant...';
+        el.className = 'status success';
         window.location.href = '/app';
       }
 
@@ -572,6 +646,10 @@ def render_landing_page() -> str:
         const password = document.getElementById('login-password').value;
         if (!requireValue(email, 'Enter the email address for your account.', 'login-status')) return;
         if (!requireValue(password, 'Enter your password.', 'login-status')) return;
+        const status = document.getElementById('login-status');
+        status.textContent = 'Signing you in...';
+        status.className = 'status';
+        setButtonBusy('login-button', 'Opening your assistant...', 'Open my assistant', true);
         const res = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -581,18 +659,25 @@ def render_landing_page() -> str:
           })
         });
         const data = await res.json();
+        setButtonBusy('login-button', 'Opening your assistant...', 'Open my assistant', false);
         const el = document.getElementById('login-status');
         if (!res.ok) {
           el.textContent = apiMessage(data, 'Login failed.');
           el.className = 'status warning-text';
           return;
         }
+        el.textContent = 'Signed in. Opening your assistant...';
+        el.className = 'status success';
         window.location.href = '/app';
       }
 
       async function sendPasswordHelp() {
         const email = normalizeEmail(document.getElementById('help-email').value);
         if (!requireValue(email, 'Enter the email address for your account.', 'help-status')) return;
+        const status = document.getElementById('help-status');
+        status.textContent = 'Preparing your reset link...';
+        status.className = 'status';
+        setButtonBusy('help-button', 'Preparing your reset link...', 'Email me a reset link', true);
         const res = await fetch('/auth/password-help', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -602,6 +687,7 @@ def render_landing_page() -> str:
           })
         });
         const data = await res.json();
+        setButtonBusy('help-button', 'Preparing your reset link...', 'Email me a reset link', false);
         const el = document.getElementById('help-status');
         if (!res.ok) {
           el.textContent = apiMessage(data, 'Could not prepare password help.');
@@ -616,6 +702,7 @@ def render_landing_page() -> str:
       }
 
       setPhoneFormatting('register-phone');
+      startFeatureCarousel();
     </script>
     """
     return _base_shell("Personal AI Phone", body)
@@ -982,7 +1069,8 @@ def render_app_page() -> str:
         renderContacts();
         renderTrusted();
         renderMemory();
-        setTab(activeTabs()[0].id);
+        const requestedTab = window.location.hash === '#profile' ? 'profile' : activeTabs()[0].id;
+        setTab(requestedTab);
       }
 
       async function fetchBootstrap() {
@@ -1228,13 +1316,14 @@ def render_app_page() -> str:
         }
       }
 
-      async function logoutUser() {
-        await fetch('/auth/logout', { method: 'POST' });
-        window.location.href = '/';
-      }
-
       window.setTab = setTab;
-      window.logoutUser = logoutUser;
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#profile') {
+          setTab('profile');
+        } else if (window.location.hash === '#home') {
+          setTab('home');
+        }
+      });
 
       fetchBootstrap();
     </script>
