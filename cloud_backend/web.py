@@ -39,48 +39,69 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{title}</title>
-  <meta name="theme-color" content="#102026">
+  <meta name="theme-color" content="#f4efe6">
   <link rel="manifest" href="/manifest.webmanifest">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap');
     :root {{
-      --bg: #102026;
-      --panel: #183038;
-      --panel-2: #213d47;
-      --text: #f5fbfd;
-      --muted: #c4d4da;
-      --accent: #8de6bb;
-      --accent-2: #7ebdff;
-      --warning: #ffd576;
-      --danger: #ff9d91;
-      --border: rgba(255,255,255,0.1);
-      --shadow: 0 22px 60px rgba(0,0,0,0.24);
+      --bg: #f4efe6;
+      --bg-accent: #ebe3d5;
+      --surface: #fffdfa;
+      --surface-2: #f7f1e7;
+      --surface-3: #e9f0fb;
+      --text: #18252b;
+      --muted: #475961;
+      --accent: #1f5fbf;
+      --accent-2: #3c78d8;
+      --accent-soft: #dce9ff;
+      --success: #1d6b45;
+      --warning: #7a4d00;
+      --danger: #992b2b;
+      --border: #cbd4d8;
+      --border-strong: #9caab0;
+      --shadow: 0 18px 40px rgba(37, 55, 66, 0.10);
+      --shadow-soft: 0 6px 18px rgba(37, 55, 66, 0.08);
+      --focus: 0 0 0 4px rgba(31, 95, 191, 0.18);
     }}
     * {{ box-sizing: border-box; }}
-    html {{ font-size: 20px; }}
+    html {{ font-size: 18px; }}
     body {{
       margin: 0;
-      font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+      font-family: "Atkinson Hyperlegible Next", "Segoe UI", Arial, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top, rgba(126,189,255,0.17), transparent 32%),
-        radial-gradient(circle at 82% 12%, rgba(141,230,187,0.14), transparent 22%),
-        linear-gradient(180deg, #0f1c21, #13262d 45%, #102026 100%);
+        linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.72)),
+        radial-gradient(circle at top right, rgba(31,95,191,0.06), transparent 30%),
+        linear-gradient(180deg, var(--bg), var(--bg-accent));
     }}
     a {{ color: inherit; text-decoration: none; }}
+    button, input, textarea, select {{
+      font-family: inherit;
+    }}
+    input:focus, textarea:focus, select:focus, button:focus, a:focus {{
+      outline: none;
+      box-shadow: var(--focus);
+    }}
     .page {{
-      max-width: 1240px;
+      max-width: 1160px;
       margin: 0 auto;
-      padding: 18px;
+      padding: 16px 16px 40px;
       display: grid;
-      gap: 18px;
+      gap: 20px;
     }}
     .nav {{
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
-      padding: 6px 2px 12px;
+      padding: 4px 2px 6px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(244, 239, 230, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(156, 170, 176, 0.35);
     }}
     .brand-wrap {{
       display: grid;
@@ -91,20 +112,22 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       font-weight: 900;
     }}
     .tagline {{
-      font-size: 0.92rem;
+      font-size: 0.94rem;
       color: var(--muted);
     }}
     .nav-links {{
       display: flex;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      color: var(--muted);
+      color: var(--text);
+      align-items: center;
     }}
     .nav-links a, .nav-button {{
       padding: 12px 16px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.05);
+      background: var(--surface);
       border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
     }}
     .nav-button {{
       color: inherit;
@@ -113,59 +136,66 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       cursor: pointer;
     }}
     .hero, .panel, .card {{
-      border-radius: 28px;
+      border-radius: 24px;
       border: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      background: var(--surface);
       box-shadow: var(--shadow);
     }}
     .hero {{
-      padding: 32px;
+      padding: 28px;
       display: grid;
-      gap: 18px;
+      gap: 16px;
+      background:
+        linear-gradient(180deg, rgba(220,233,255,0.55), rgba(255,253,250,0.96) 42%),
+        var(--surface);
     }}
     .panel, .card {{
       padding: 22px;
     }}
     h1 {{
       margin: 0;
-      font-size: clamp(2.5rem, 6vw, 4.5rem);
-      line-height: 1;
-      max-width: 11ch;
+      font-size: clamp(2.5rem, 6vw, 4.3rem);
+      line-height: 0.98;
+      max-width: 10ch;
+      letter-spacing: -0.03em;
     }}
     h2 {{
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1.7rem;
+      line-height: 1.15;
     }}
     h3 {{
       margin: 0 0 8px;
-      font-size: 1.08rem;
+      font-size: 1.18rem;
+      line-height: 1.2;
     }}
     p, li {{
-      line-height: 1.65;
+      line-height: 1.7;
       color: var(--muted);
     }}
     .badge-row, .cta-row, .tab-row {{
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
     }}
     .badge, .tab-button {{
       border-radius: 999px;
       padding: 12px 16px;
       font-size: 0.96rem;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05);
+      background: var(--surface-2);
     }}
     .badge strong {{ color: var(--accent); }}
     .tab-button {{
       color: var(--text);
       cursor: pointer;
       font-weight: 800;
+      background: var(--surface);
     }}
     .tab-button.active {{
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color: #08161b;
-      border-color: transparent;
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
     }}
     .layout-2 {{
       display: grid;
@@ -192,18 +222,18 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     }}
     .item {{
       padding: 16px;
-      border-radius: 20px;
-      background: var(--panel-2);
+      border-radius: 18px;
+      background: var(--surface-2);
       border: 1px solid var(--border);
     }}
     .summary-box {{
       padding: 18px;
-      border-radius: 22px;
-      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      background: var(--surface-2);
       border: 1px solid var(--border);
     }}
     .big-stat {{
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       font-weight: 900;
       color: var(--text);
     }}
@@ -220,37 +250,44 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       display: grid;
       gap: 8px;
       font-weight: 800;
+      color: var(--text);
     }}
     button, .button, input, textarea, select {{
       font: inherit;
-      border-radius: 20px;
+      border-radius: 18px;
     }}
     button, .button {{
       border: 0;
-      min-height: 62px;
+      min-height: 60px;
       padding: 16px 22px;
       cursor: pointer;
       font-weight: 900;
-      color: #08161b;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #ffffff;
+      background: linear-gradient(180deg, var(--accent-2), var(--accent));
       display: inline-flex;
       align-items: center;
       justify-content: center;
       text-align: center;
+      box-shadow: 0 10px 20px rgba(31, 95, 191, 0.18);
     }}
     .secondary {{
-      background: rgba(255,255,255,0.05);
+      background: var(--surface);
       color: var(--text);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
+      box-shadow: none;
     }}
     input, textarea, select {{
       width: 100%;
       min-height: 62px;
-      border: 1px solid var(--border);
-      background: rgba(0,0,0,0.25);
+      border: 2px solid var(--border);
+      background: #fffefb;
       color: var(--text);
       padding: 15px 16px;
       font-size: 1rem;
+      box-shadow: inset 0 1px 1px rgba(24, 37, 43, 0.03);
+    }}
+    input::placeholder, textarea::placeholder {{
+      color: #7b878d;
     }}
     textarea {{
       min-height: 150px;
@@ -258,10 +295,10 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     }}
     .status {{
       min-height: 1.5rem;
-      font-size: 0.95rem;
+      font-size: 0.98rem;
       color: var(--muted);
     }}
-    .success {{ color: var(--accent); font-weight: 800; }}
+    .success {{ color: var(--success); font-weight: 800; }}
     .warning-text {{ color: var(--warning); font-weight: 800; }}
     .danger-text {{ color: var(--danger); font-weight: 800; }}
     .muted {{ color: var(--muted); }}
@@ -278,16 +315,74 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       font-weight: 900;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      font-size: 0.82rem;
+      font-size: 0.84rem;
     }}
     .help-note {{
       border-left: 4px solid var(--accent);
       padding-left: 12px;
     }}
+    .cta-row > * {{
+      flex: 1 1 220px;
+    }}
     @media (max-width: 980px) {{
       html {{ font-size: 18px; }}
       .layout-2, .grid-2, .grid-3, .row-2 {{ grid-template-columns: 1fr; }}
       h1 {{ max-width: none; }}
+      .nav {{
+        position: static;
+        border-bottom: 0;
+      }}
+    }}
+    @media (max-width: 760px) {{
+      .page {{
+        padding: 12px 12px 28px;
+      }}
+      .hero, .panel, .card {{
+        border-radius: 20px;
+      }}
+      .hero {{
+        padding: 22px 18px;
+      }}
+      .panel, .card, .summary-box {{
+        padding: 18px;
+      }}
+      .nav-links {{
+        width: 100%;
+      }}
+      .nav-links a, .nav-button {{
+        flex: 1 1 calc(50% - 10px);
+        justify-content: center;
+        text-align: center;
+      }}
+      .badge, .tab-button {{
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+      }}
+      .cta-row > * {{
+        flex-basis: 100%;
+      }}
+      button, .button, input, textarea, select {{
+        font-size: 1rem;
+      }}
+      h1 {{
+        font-size: clamp(2.1rem, 12vw, 3rem);
+        line-height: 1.02;
+      }}
+      h2 {{
+        font-size: 1.45rem;
+      }}
+      .summary-box {{
+        border-radius: 18px;
+      }}
+    }}
+    @media (max-width: 420px) {{
+      html {{
+        font-size: 17px;
+      }}
+      .nav-links a, .nav-button {{
+        flex-basis: 100%;
+      }}
     }}
   </style>
 </head>
@@ -1261,8 +1356,8 @@ def manifest_payload() -> str:
             "short_name": "Personal AI",
             "start_url": "/app",
             "display": "standalone",
-            "background_color": "#102026",
-            "theme_color": "#102026",
+            "background_color": "#f4efe6",
+            "theme_color": "#f4efe6",
             "description": "A calm, large-format personal assistant for calls, planning, memory, and everyday help.",
         }
     )
