@@ -29,9 +29,8 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
   <style>
     :root {{
       --bg: #102026;
-      --bg-soft: #17303a;
-      --panel: #1a313a;
-      --panel-2: #23414c;
+      --panel: #183038;
+      --panel-2: #213d47;
       --text: #f5fbfd;
       --muted: #c4d4da;
       --accent: #8de6bb;
@@ -39,7 +38,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       --warning: #ffd576;
       --danger: #ff9d91;
       --border: rgba(255,255,255,0.1);
-      --shadow: 0 22px 60px rgba(0,0,0,0.26);
+      --shadow: 0 22px 60px rgba(0,0,0,0.24);
     }}
     * {{ box-sizing: border-box; }}
     html {{ font-size: 20px; }}
@@ -49,7 +48,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       color: var(--text);
       background:
         radial-gradient(circle at top, rgba(126,189,255,0.17), transparent 32%),
-        radial-gradient(circle at 82% 10%, rgba(141,230,187,0.14), transparent 22%),
+        radial-gradient(circle at 82% 12%, rgba(141,230,187,0.14), transparent 22%),
         linear-gradient(180deg, #0f1c21, #13262d 45%, #102026 100%);
     }}
     a {{ color: inherit; text-decoration: none; }}
@@ -75,7 +74,6 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     .brand {{
       font-size: 1.18rem;
       font-weight: 900;
-      letter-spacing: 0.01em;
     }}
     .tagline {{
       font-size: 0.92rem;
@@ -109,7 +107,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     }}
     h1 {{
       margin: 0;
-      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
       line-height: 1;
       max-width: 11ch;
     }}
@@ -119,18 +117,18 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     }}
     h3 {{
       margin: 0 0 8px;
-      font-size: 1.1rem;
+      font-size: 1.08rem;
     }}
     p, li {{
       line-height: 1.65;
       color: var(--muted);
     }}
-    .badge-row, .chip-row, .cta-row {{
+    .badge-row, .cta-row, .tab-row {{
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
     }}
-    .badge, .chip {{
+    .badge, .tab-button {{
       border-radius: 999px;
       padding: 12px 16px;
       font-size: 0.96rem;
@@ -138,6 +136,16 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       background: rgba(255,255,255,0.05);
     }}
     .badge strong {{ color: var(--accent); }}
+    .tab-button {{
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 800;
+    }}
+    .tab-button.active {{
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #08161b;
+      border-color: transparent;
+    }}
     .layout-2 {{
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
@@ -157,9 +165,26 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       display: grid;
       gap: 14px;
     }}
-    .mini-stack {{
+    .list {{
       display: grid;
-      gap: 10px;
+      gap: 12px;
+    }}
+    .item {{
+      padding: 16px;
+      border-radius: 20px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+    }}
+    .summary-box {{
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+    }}
+    .big-stat {{
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--text);
     }}
     .form {{
       display: grid;
@@ -192,14 +217,10 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       justify-content: center;
       text-align: center;
     }}
-    .button.secondary, .secondary {{
+    .secondary {{
       background: rgba(255,255,255,0.05);
       color: var(--text);
       border: 1px solid var(--border);
-    }}
-    .button.warning {{
-      background: linear-gradient(135deg, var(--warning), #ffb86c);
-      color: #231400;
     }}
     input, textarea, select {{
       width: 100%;
@@ -224,55 +245,12 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     .danger-text {{ color: var(--danger); font-weight: 800; }}
     .muted {{ color: var(--muted); }}
     .small {{ font-size: 0.93rem; }}
-    .list {{
-      display: grid;
-      gap: 12px;
-    }}
-    .item {{
-      padding: 16px;
-      border-radius: 20px;
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-    }}
-    .item strong {{
-      display: inline-block;
-      margin-bottom: 4px;
-    }}
-    .summary-box {{
-      padding: 18px;
-      border-radius: 22px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-    }}
-    .big-stat {{
-      font-size: 1.2rem;
-      font-weight: 900;
-      color: var(--text);
-    }}
     .assistant-reply {{
       min-height: 150px;
       white-space: pre-wrap;
     }}
-    .quick-actions {{
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }}
-    .steps {{
-      margin: 0;
-      padding-left: 24px;
-    }}
-    .qr-box {{
-      border: 2px dashed rgba(255,255,255,0.13);
-      border-radius: 24px;
-      padding: 20px;
-      text-align: center;
-      background: rgba(255,255,255,0.03);
-    }}
-    .install-link {{
-      font-size: 1.05rem;
-      font-weight: 800;
-      word-break: break-word;
+    .section.hidden {{
+      display: none;
     }}
     .kicker {{
       color: var(--accent);
@@ -281,11 +259,13 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       text-transform: uppercase;
       font-size: 0.82rem;
     }}
+    .help-note {{
+      border-left: 4px solid var(--accent);
+      padding-left: 12px;
+    }}
     @media (max-width: 980px) {{
       html {{ font-size: 18px; }}
-      .layout-2, .grid-2, .grid-3, .row-2, .quick-actions {{
-        grid-template-columns: 1fr;
-      }}
+      .layout-2, .grid-2, .grid-3, .row-2 {{ grid-template-columns: 1fr; }}
       h1 {{ max-width: none; }}
     }}
   </style>
@@ -311,43 +291,23 @@ def render_landing_page() -> str:
     body = """
     <section class="hero">
       <div class="badge-row">
-        <div class="badge"><strong>Web-first v1</strong> no App Store required</div>
-        <div class="badge">Built for older and non-technical users</div>
-        <div class="badge">Large text, big controls, fewer decisions</div>
+        <div class="badge"><strong>Friend-testable v1</strong> no app store required</div>
+        <div class="badge">Large text and fewer steps</div>
+        <div class="badge">Works for older and non-technical users</div>
       </div>
-      <div class="kicker">A simpler way to use a phone</div>
-      <h1>One gentle AI can replace the stress of app-hunting.</h1>
+      <div class="kicker">One helpful assistant</div>
+      <h1>Stop hunting for apps. Ask for help once.</h1>
       <p>
-        Personal AI Phone starts as a mobile-friendly web app that feels calm, clear, and helpful.
-        It gives people one place to ask for help with calling family, remembering preferences,
-        planning the day, understanding paperwork, and eventually letting trusted AI agents handle more work.
+        Personal AI Phone is a calmer, easier way to use a phone. Instead of remembering where everything lives,
+        the user gets one assistant that can remember people, save preferences, send the app to their phone, and grow into a fuller AI companion over time.
       </p>
-      <div class="cta-row">
-        <a class="button" href="#signup">Create an account</a>
-        <a class="button secondary" href="/download">See install options</a>
-      </div>
     </section>
 
-    <section class="grid-3">
-      <div class="card">
-        <h3>Made for real people</h3>
-        <p>Large elements, plain language, and guided confirmations make the product feel easier than a regular smartphone.</p>
-      </div>
-      <div class="card">
-        <h3>Useful right away</h3>
-        <p>Keep contacts, shared helpers, preferences, and assistant history in one account you can reuse later on phone hardware.</p>
-      </div>
-      <div class="card">
-        <h3>Ready for what comes next</h3>
-        <p>The architecture is built for future calendar flows, agent-to-agent scheduling, shopping help, and device handoff.</p>
-      </div>
-    </section>
-
-    <section class="layout-2">
-      <div class="panel" id="signup">
-        <div class="kicker">Get started</div>
-        <h2>Create your account</h2>
-        <p class="small">Your account unlocks your dashboard, install page, trusted circle, and future phone app pairing.</p>
+    <section class="grid-2">
+      <div class="panel">
+        <div class="kicker">Create your account</div>
+        <h2>We’ll keep it simple</h2>
+        <p class="small">We ask for your phone number so we can send the app link directly to you later.</p>
         <div class="form">
           <div class="row-2">
             <label>Display name
@@ -357,20 +317,25 @@ def render_landing_page() -> str:
               <input id="register-username" placeholder="pat-helper" />
             </label>
           </div>
-          <label>Email
-            <input id="register-email" type="email" placeholder="you@example.com" />
-          </label>
+          <div class="row-2">
+            <label>Email
+              <input id="register-email" type="email" placeholder="you@example.com" />
+            </label>
+            <label>Phone number
+              <input id="register-phone" type="tel" placeholder="+1 555 123 0000" />
+            </label>
+          </div>
           <label>Password
             <input id="register-password" type="password" placeholder="At least 8 characters" />
           </label>
-          <button onclick="registerUser()">Create account</button>
-          <div id="register-status" class="status">Your account becomes the home for your profile, preferences, contacts, and future app installs.</div>
+          <button onclick="registerUser()">Create my account</button>
+          <div id="register-status" class="status">After you join, we can text or email the app link for you.</div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="kicker">Welcome back</div>
-        <h2>Sign in</h2>
+        <div class="kicker">Sign in</div>
+        <h2>Return to your assistant</h2>
         <div class="form">
           <label>Email or username
             <input id="login-identifier" placeholder="you@example.com or username" />
@@ -379,31 +344,37 @@ def render_landing_page() -> str:
             <input id="login-password" type="password" placeholder="Password" />
           </label>
           <button onclick="loginUser()">Open my assistant</button>
-          <div id="login-status" class="status">After signing in, you can open the dashboard and install the web app to your phone home screen.</div>
+          <div id="login-status" class="status">After signing in, you can send the app link to your phone with one tap.</div>
+        </div>
+
+        <div class="summary-box" style="margin-top:16px;">
+          <h3>Forgot your password?</h3>
+          <div class="form">
+            <label>Email or username
+              <input id="help-identifier" placeholder="you@example.com or username" />
+            </label>
+            <div class="row-2">
+              <button class="secondary" onclick="sendPasswordHelp('email')">Send reset by email</button>
+              <button class="secondary" onclick="sendPasswordHelp('sms')">Send reset by text</button>
+            </div>
+            <div id="help-status" class="status">We’ll help you get back in with the easiest available method.</div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="grid-2">
-      <div class="panel">
-        <div class="kicker">How it helps</div>
-        <h2>What the first version already supports</h2>
-        <div class="list">
-          <div class="item"><strong>Calls and contacts</strong><br><span class="muted">Save important people in one place so later the assistant can launch the right calling flow fast.</span></div>
-          <div class="item"><strong>Personal memory</strong><br><span class="muted">Store habits, preferences, relationships, and life details so the AI becomes more personal over time.</span></div>
-          <div class="item"><strong>Trusted circle</strong><br><span class="muted">Add caregivers or family members who can share context and eventually help coordinate tasks.</span></div>
-          <div class="item"><strong>Install on phone</strong><br><span class="muted">Use it like an app from your home screen today while native phone integrations continue in parallel.</span></div>
-        </div>
+    <section class="grid-3">
+      <div class="card">
+        <h3>Minimal effort</h3>
+        <p>Big controls, short forms, and direct actions reduce stress and confusion.</p>
       </div>
-
-      <div class="panel">
-        <div class="kicker">What comes later</div>
-        <h2>Why this is a bridge product</h2>
-        <div class="list">
-          <div class="item"><strong>Calendar help</strong><br><span class="muted">Schedule appointments with clear confirmations.</span></div>
-          <div class="item"><strong>Agent-to-agent tasks</strong><br><span class="muted">Your assistant can eventually coordinate with other assistants about meetings, purchases, and bookings.</span></div>
-          <div class="item"><strong>Native phone handoff</strong><br><span class="muted">The same account and profile will move into the deeper mobile app experience later.</span></div>
-        </div>
+      <div class="card">
+        <h3>Phone-ready onboarding</h3>
+        <p>Instead of long install instructions, the app can send a link to the person’s phone by email or text.</p>
+      </div>
+      <div class="card">
+        <h3>Built for the future</h3>
+        <p>This starts as a web app and grows toward a full AI phone companion and eventually a true thin client.</p>
       </div>
     </section>
 
@@ -416,6 +387,7 @@ def render_landing_page() -> str:
             display_name: document.getElementById('register-display-name').value,
             username: document.getElementById('register-username').value,
             email: document.getElementById('register-email').value,
+            phone_number: document.getElementById('register-phone').value,
             password: document.getElementById('register-password').value
           })
         });
@@ -426,8 +398,6 @@ def render_landing_page() -> str:
           el.className = 'status warning-text';
           return;
         }
-        el.textContent = 'Account created. Opening your assistant now...';
-        el.className = 'status success';
         window.location.href = '/app';
       }
 
@@ -447,9 +417,25 @@ def render_landing_page() -> str:
           el.className = 'status warning-text';
           return;
         }
-        el.textContent = 'Signed in. Opening your assistant now...';
-        el.className = 'status success';
         window.location.href = '/app';
+      }
+
+      async function sendPasswordHelp(channel) {
+        const res = await fetch('/auth/password-help', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifier: document.getElementById('help-identifier').value,
+            channel
+          })
+        });
+        const data = await res.json();
+        const el = document.getElementById('help-status');
+        el.textContent = data.message || 'Password help is ready.';
+        el.className = 'status success';
+        if (data.action_url) {
+          window.open(data.action_url, '_blank');
+        }
       }
     </script>
     """
@@ -460,85 +446,102 @@ def render_app_page() -> str:
     body = """
     <section class="hero">
       <div class="badge-row">
-        <div class="badge"><strong>My AI dashboard</strong></div>
-        <div class="badge">Phone-friendly web app</div>
-        <div class="badge">Older-user friendly design</div>
+        <div class="badge"><strong>My AI</strong> personal dashboard</div>
+        <div class="badge">Bigger text and simpler flows</div>
       </div>
       <div class="layout-2">
         <div class="stack">
           <div class="kicker">Welcome</div>
           <h1 id="welcome-name">Loading...</h1>
-          <p id="welcome-copy">Preparing your assistant, profile, and daily briefing.</p>
-          <div class="cta-row">
-            <a class="button secondary" href="/download">Install on my phone</a>
-            <button class="secondary" onclick="logoutUser()">Sign out</button>
-          </div>
+          <p id="welcome-copy">Preparing your assistant and your easier phone setup.</p>
+          <div class="tab-row" id="tab-row"></div>
         </div>
         <div class="summary-box">
           <h3>Today at a glance</h3>
           <div class="big-stat" id="briefing-headline">Loading...</div>
           <p id="briefing-summary" class="muted">Loading...</p>
-          <div id="briefing-suggestions" class="mini-stack muted"></div>
+          <div id="briefing-suggestions" class="list"></div>
         </div>
       </div>
     </section>
 
-    <section class="grid-2">
-      <div class="panel">
-        <div class="kicker">Quick actions</div>
-        <h2>Start with one tap</h2>
-        <div class="quick-actions">
-          <button onclick="fillPrompt('Call my daughter')">Call someone</button>
-          <button onclick="fillPrompt('Schedule lunch next Tuesday')">Plan my day</button>
-          <button onclick="fillPrompt('Remember that I prefer large text and short instructions')">Save a preference</button>
-          <button class="secondary" onclick="window.location.href='/download'">Install on phone</button>
+    <section id="tab-home" class="section">
+      <div class="layout-2">
+        <div class="panel">
+          <div class="kicker">Assistant</div>
+          <h2>Ask for what you need</h2>
+          <div class="form">
+            <label>Assistant mode
+              <select id="assistant-mode">
+                <option value="talk">Talk</option>
+                <option value="call">Call</option>
+                <option value="calendar">Calendar</option>
+                <option value="camera">Camera</option>
+                <option value="documents">Documents</option>
+                <option value="memory">Memory</option>
+              </select>
+            </label>
+            <label>What should I help with?
+              <textarea id="assistant-prompt" placeholder="Call Alice, schedule lunch, remember a preference, or help me buy something."></textarea>
+            </label>
+            <div class="cta-row">
+              <button onclick="askAssistant()">Ask my assistant</button>
+              <button class="secondary" onclick="fillPrompt('Call Alice')">Call someone</button>
+              <button class="secondary" onclick="fillPrompt('Schedule lunch next Tuesday')">Plan my day</button>
+            </div>
+            <div class="summary-box">
+              <h3>Assistant response</h3>
+              <div id="assistant-reply" class="assistant-reply muted">Nothing yet.</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="panel">
-        <div class="kicker">Accessibility</div>
-        <h2>Simple by default</h2>
-        <div class="list">
-          <div class="item"><strong>Voice guidance</strong><br><span id="accessibility-summary" class="muted">Loading...</span></div>
-          <div class="item"><strong>Saved preferences</strong><br><span id="preferences-summary" class="muted">Loading...</span></div>
-          <div class="item"><strong>Trusted support</strong><br><span id="trusted-summary" class="muted">Loading...</span></div>
-        </div>
-      </div>
-    </section>
 
-    <section class="layout-2">
-      <div class="panel">
-        <div class="kicker">Assistant</div>
-        <h2>Ask in plain language</h2>
-        <div class="form">
-          <label>Assistant mode
-            <select id="assistant-mode">
-              <option value="talk">Talk</option>
-              <option value="call">Call</option>
-              <option value="calendar">Calendar</option>
-              <option value="camera">Camera</option>
-              <option value="documents">Documents</option>
-              <option value="memory">Memory</option>
-            </select>
-          </label>
-          <label>What do you need?
-            <textarea id="assistant-prompt" placeholder="For example: Call Alice, schedule lunch with Alex next Tuesday, or buy my usual vitamins."></textarea>
-          </label>
-          <button onclick="askAssistant()">Ask my assistant</button>
-          <div class="summary-box">
-            <h3>Assistant response</h3>
-            <div id="assistant-reply" class="assistant-reply muted">Nothing yet.</div>
+        <div class="stack">
+          <div class="panel">
+            <div class="kicker">Send it to my phone</div>
+            <h2>One tap is better than instructions</h2>
+            <p class="help-note" id="install-targets">Loading your saved email and phone number.</p>
+            <div class="row-2">
+              <button onclick="sendInstallLink('sms')">Text me the app</button>
+              <button class="secondary" onclick="sendInstallLink('email')">Email me the app</button>
+            </div>
+            <div id="install-status" class="status">We’ll use the easiest available delivery method for your account.</div>
+          </div>
+
+          <div class="panel">
+            <div class="kicker">Easy recovery</div>
+            <h2>Password help</h2>
+            <p class="small">If you ever forget your password, we can send a reset link to your email or phone.</p>
+            <div class="row-2">
+              <button class="secondary" onclick="sendSignedInPasswordHelp('email')">Send reset by email</button>
+              <button class="secondary" onclick="sendSignedInPasswordHelp('sms')">Send reset by text</button>
+            </div>
+            <div id="password-help-status" class="status">This is here so support is always close by.</div>
+          </div>
+
+          <div class="panel">
+            <div class="kicker">Sign out</div>
+            <h2>Done for now?</h2>
+            <button class="secondary" onclick="logoutUser()">Sign out</button>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="stack">
+    <section id="tab-profile" class="section hidden">
+      <div class="grid-2">
         <div class="panel">
           <div class="kicker">Profile</div>
-          <h2>Your setup</h2>
+          <h2>Your account</h2>
           <div class="form">
-            <label>Display name
-              <input id="profile-display-name" />
-            </label>
+            <div class="row-2">
+              <label>Display name
+                <input id="profile-display-name" />
+              </label>
+              <label>Phone number
+                <input id="profile-phone-number" type="tel" />
+              </label>
+            </div>
             <label>One important preference
               <input id="profile-preference" placeholder="I prefer simple instructions and larger text" />
             </label>
@@ -556,8 +559,8 @@ def render_app_page() -> str:
                 </select>
               </label>
             </div>
-            <button onclick="saveProfile()">Save my profile</button>
-            <div id="profile-status" class="status">Your account profile will also be reused later by the native phone app.</div>
+            <button onclick="saveProfile()">Save my account</button>
+            <div id="profile-status" class="status">Your saved details also power texting the app link to your phone.</div>
           </div>
         </div>
 
@@ -584,80 +587,129 @@ def render_app_page() -> str:
           </div>
         </div>
       </div>
-    </section>
 
-    <section class="grid-2">
-      <div class="panel">
-        <div class="kicker">Contacts</div>
-        <h2>Important people</h2>
-        <div class="form">
-          <div class="row-2">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="kicker">Contacts</div>
+          <h2>Important people</h2>
+          <div class="form">
+            <div class="row-2">
+              <label>Name
+                <input id="contact-name" placeholder="Alice Example" />
+              </label>
+              <label>Phone
+                <input id="contact-phone" placeholder="+1 555 123 0000" />
+              </label>
+            </div>
+            <label>Notes
+              <input id="contact-notes" placeholder="Daughter, prefers evenings" />
+            </label>
+            <label>Shared household contact?
+              <select id="contact-shared">
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </label>
+            <button onclick="addContact()">Add contact</button>
+            <div id="contact-status" class="status">Shared contacts are for family, caregivers, or other trusted support.</div>
+          </div>
+          <div id="contacts-list" class="list" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="panel">
+          <div class="kicker">Trusted circle</div>
+          <h2>Family and helpers</h2>
+          <div class="form">
             <label>Name
-              <input id="contact-name" placeholder="Alice Example" />
+              <input id="trusted-name" placeholder="Jamie Helper" />
             </label>
-            <label>Phone
-              <input id="contact-phone" placeholder="+1 555 123 0000" />
-            </label>
+            <div class="row-2">
+              <label>Email
+                <input id="trusted-email" placeholder="jamie@example.com" />
+              </label>
+              <label>Role
+                <input id="trusted-role" placeholder="Caregiver, daughter, neighbor" />
+              </label>
+            </div>
+            <button onclick="addTrustedPerson()">Add trusted person</button>
+            <div id="trusted-status" class="status">Trusted people are the ones your assistant can coordinate with later.</div>
           </div>
-          <label>Notes
-            <input id="contact-notes" placeholder="Daughter, prefers evenings" />
-          </label>
-          <label>Shared household contact?
-            <select id="contact-shared">
-              <option value="false">No</option>
-              <option value="true">Yes</option>
-            </select>
-          </label>
-          <button onclick="addContact()">Add contact</button>
-          <div id="contact-status" class="status">Shared contacts are useful for a household, caregiver, or family setup.</div>
+          <div id="trusted-list" class="list" style="margin-top:16px;"></div>
         </div>
-        <div id="contacts-list" class="list muted" style="margin-top:16px;">Loading...</div>
       </div>
 
-      <div class="panel">
-        <div class="kicker">Trusted circle</div>
-        <h2>Family and helpers</h2>
-        <div class="form">
-          <label>Name
-            <input id="trusted-name" placeholder="Jamie Helper" />
-          </label>
-          <div class="row-2">
-            <label>Email
-              <input id="trusted-email" placeholder="jamie@example.com" />
-            </label>
-            <label>Role
-              <input id="trusted-role" placeholder="Caregiver, daughter, neighbor" />
-            </label>
-          </div>
-          <button onclick="addTrustedPerson()">Add trusted person</button>
-          <div id="trusted-status" class="status">Trusted people are who the assistant can eventually coordinate with or share approved context with.</div>
-        </div>
-        <div id="trusted-list" class="list muted" style="margin-top:16px;">Loading...</div>
-      </div>
-    </section>
-
-    <section class="grid-2">
       <div class="panel">
         <div class="kicker">Saved memory</div>
         <h2>What your assistant knows</h2>
-        <div id="memory-list" class="list muted">Loading...</div>
+        <div id="memory-list" class="list"></div>
       </div>
+    </section>
+
+    <section id="tab-users" class="section hidden">
       <div class="panel">
-        <div class="kicker">Future-ready</div>
-        <h2>What this account grows into</h2>
-        <div class="list">
-          <div class="item"><strong>Phone install today</strong><br><span class="muted">Use the web app on your home screen right now.</span></div>
-          <div class="item"><strong>Native phone app later</strong><br><span class="muted">The same profile, memory, and contacts will carry forward.</span></div>
-          <div class="item"><strong>Agent-to-agent workflows</strong><br><span class="muted">Future versions can help schedule, buy, and coordinate with other trusted assistants online.</span></div>
-        </div>
+        <div class="kicker">Admin</div>
+        <h2>User management</h2>
+        <p class="small">This tab is only visible to the admin account.</p>
+        <button onclick="loadAdminUsers()">Refresh users</button>
+        <div id="admin-users-status" class="status">Loading user list.</div>
+        <div id="admin-users-list" class="list" style="margin-top:16px;"></div>
+      </div>
+    </section>
+
+    <section id="tab-analytics" class="section hidden">
+      <div class="panel">
+        <div class="kicker">Analytics</div>
+        <h2>Simple system overview</h2>
+        <button onclick="loadAnalytics()">Refresh analytics</button>
+        <div id="analytics-status" class="status">Loading analytics.</div>
+        <div class="grid-3" id="analytics-cards" style="margin-top:16px;"></div>
+        <div id="analytics-users" class="list" style="margin-top:16px;"></div>
       </div>
     </section>
 
     <script>
       let appState = null;
+      const regularTabs = [
+        { id: 'home', label: 'Home' },
+        { id: 'profile', label: 'Profile' }
+      ];
+      const adminTabs = [
+        { id: 'home', label: 'Home' },
+        { id: 'users', label: 'Users' },
+        { id: 'analytics', label: 'Analytics' },
+        { id: 'profile', label: 'Profile' }
+      ];
 
       function fillPrompt(text) {
         document.getElementById('assistant-prompt').value = text;
+      }
+
+      function activeTabs() {
+        return appState && appState.user && appState.user.is_admin ? adminTabs : regularTabs;
+      }
+
+      function buildTabs() {
+        const row = document.getElementById('tab-row');
+        row.innerHTML = '';
+        for (const tab of activeTabs()) {
+          const button = document.createElement('button');
+          button.className = 'tab-button secondary';
+          button.textContent = tab.label;
+          button.onclick = () => setTab(tab.id);
+          button.id = 'tab-button-' + tab.id;
+          row.appendChild(button);
+        }
+      }
+
+      function setTab(id) {
+        document.querySelectorAll('.section').forEach((section) => section.classList.add('hidden'));
+        const target = document.getElementById('tab-' + id);
+        if (target) target.classList.remove('hidden');
+        document.querySelectorAll('.tab-button').forEach((button) => button.classList.remove('active'));
+        const active = document.getElementById('tab-button-' + id);
+        if (active) active.classList.add('active');
+        if (id === 'users') loadAdminUsers();
+        if (id === 'analytics') loadAnalytics();
       }
 
       function renderBriefing() {
@@ -669,19 +721,9 @@ def render_app_page() -> str:
         for (const item of (briefing.suggestions || [])) {
           const div = document.createElement('div');
           div.className = 'item';
-          div.innerHTML = '<span class="muted">' + item + '</span>';
+          div.textContent = item;
           box.appendChild(div);
         }
-      }
-
-      function renderSummaries() {
-        document.getElementById('accessibility-summary').textContent =
-          'Voice guidance ' + (appState.state.accessibility.voice_guidance ? 'on' : 'off') +
-          ', text size ' + appState.state.accessibility.text_scale + '.';
-        document.getElementById('preferences-summary').textContent =
-          (appState.state.preferences || []).map(p => p.summary).join(', ') || 'No saved preferences yet.';
-        document.getElementById('trusted-summary').textContent =
-          (appState.state.trusted_circle || []).map(p => p.name).join(', ') || 'No trusted people added yet.';
       }
 
       function renderContacts() {
@@ -695,10 +737,7 @@ def render_app_page() -> str:
         for (const contact of contacts) {
           const div = document.createElement('div');
           div.className = 'item';
-          div.innerHTML =
-            '<strong>' + contact.name + '</strong><br>' +
-            '<span class="muted">' + contact.phone + '</span><br>' +
-            '<span class="small muted">' + (contact.notes || 'No notes yet.') + (contact.shared ? ' · shared contact' : '') + '</span>';
+          div.innerHTML = '<strong>' + contact.name + '</strong><br><span class="muted">' + contact.phone + '</span><br><span class="small muted">' + (contact.notes || 'No notes yet.') + (contact.shared ? ' · shared contact' : '') + '</span>';
           list.appendChild(div);
         }
       }
@@ -714,10 +753,7 @@ def render_app_page() -> str:
         for (const person of people) {
           const div = document.createElement('div');
           div.className = 'item';
-          div.innerHTML =
-            '<strong>' + person.name + '</strong><br>' +
-            '<span class="muted">' + person.email + '</span><br>' +
-            '<span class="small muted">' + person.role + '</span>';
+          div.innerHTML = '<strong>' + person.name + '</strong><br><span class="muted">' + person.email + '</span><br><span class="small muted">' + person.role + '</span>';
           list.appendChild(div);
         }
       }
@@ -738,31 +774,29 @@ def render_app_page() -> str:
             hasItems = true;
             const div = document.createElement('div');
             div.className = 'item';
-            div.innerHTML =
-              '<strong>' + label + '</strong><br>' +
-              '<span class="muted">' + entry.summary + '</span>' +
-              (entry.detail ? '<br><span class="small muted">' + entry.detail + '</span>' : '');
+            div.innerHTML = '<strong>' + label + '</strong><br><span class="muted">' + entry.summary + '</span>' + (entry.detail ? '<br><span class="small muted">' + entry.detail + '</span>' : '');
             list.appendChild(div);
           }
         }
-        if (!hasItems) {
-          list.textContent = 'No saved memory yet.';
-        }
+        if (!hasItems) list.textContent = 'No saved memory yet.';
       }
 
       function hydrateApp(data) {
         appState = data;
+        buildTabs();
         document.getElementById('welcome-name').textContent = 'Hello, ' + appState.user.display_name;
-        document.getElementById('welcome-copy').textContent =
-          'Your assistant can already help organize contacts, memory, and trusted support while the phone-native experience keeps growing.';
+        document.getElementById('welcome-copy').textContent = 'Your assistant is set up to help and can send the app straight to your phone.';
         document.getElementById('profile-display-name').value = appState.user.display_name || '';
+        document.getElementById('profile-phone-number').value = appState.user.phone_number || '';
         document.getElementById('profile-voice-guidance').value = String(appState.state.accessibility.voice_guidance);
         document.getElementById('profile-text-scale').value = appState.state.accessibility.text_scale;
+        document.getElementById('install-targets').textContent =
+          'We can send the app to ' + (appState.user.phone_number || 'your saved phone') + ' or ' + appState.user.email + '.';
         renderBriefing();
-        renderSummaries();
         renderContacts();
         renderTrusted();
         renderMemory();
+        setTab(activeTabs()[0].id);
       }
 
       async function fetchBootstrap() {
@@ -771,8 +805,7 @@ def render_app_page() -> str:
           window.location.href = '/';
           return;
         }
-        const data = await res.json();
-        hydrateApp(data);
+        hydrateApp(await res.json());
       }
 
       async function askAssistant() {
@@ -791,7 +824,7 @@ def render_app_page() -> str:
           reply.className = 'assistant-reply danger-text';
           return;
         }
-        reply.textContent = '[' + data.mode + ' / ' + data.interface_mode + '] ' + data.text;
+        reply.textContent = data.text;
         reply.className = 'assistant-reply';
       }
 
@@ -801,6 +834,7 @@ def render_app_page() -> str:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             display_name: document.getElementById('profile-display-name').value,
+            phone_number: document.getElementById('profile-phone-number').value,
             preference_summary: document.getElementById('profile-preference').value,
             voice_guidance: document.getElementById('profile-voice-guidance').value === 'true',
             text_scale: document.getElementById('profile-text-scale').value
@@ -843,6 +877,7 @@ def render_app_page() -> str:
         document.getElementById('contact-phone').value = '';
         document.getElementById('contact-notes').value = '';
         hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
+        setTab('profile');
       }
 
       async function addTrustedPerson() {
@@ -868,6 +903,7 @@ def render_app_page() -> str:
         document.getElementById('trusted-email').value = '';
         document.getElementById('trusted-role').value = '';
         hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
+        setTab('profile');
       }
 
       async function addMemory() {
@@ -892,6 +928,106 @@ def render_app_page() -> str:
         document.getElementById('memory-summary').value = '';
         document.getElementById('memory-detail').value = '';
         hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
+        setTab('profile');
+      }
+
+      async function sendInstallLink(channel) {
+        const res = await fetch('/app/api/install-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel })
+        });
+        const data = await res.json();
+        const el = document.getElementById('install-status');
+        el.textContent = data.message || 'Install link is ready.';
+        el.className = 'status success';
+        if (data.action_url) window.open(data.action_url, '_blank');
+      }
+
+      async function sendSignedInPasswordHelp(channel) {
+        const res = await fetch('/app/api/password-help', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel })
+        });
+        const data = await res.json();
+        const el = document.getElementById('password-help-status');
+        el.textContent = data.message || 'Password help is ready.';
+        el.className = 'status success';
+        if (data.action_url) window.open(data.action_url, '_blank');
+      }
+
+      async function loadAdminUsers() {
+        const res = await fetch('/app/api/admin/users');
+        const box = document.getElementById('admin-users-list');
+        const status = document.getElementById('admin-users-status');
+        if (!res.ok) {
+          status.textContent = 'Could not load users.';
+          status.className = 'status warning-text';
+          return;
+        }
+        const data = await res.json();
+        status.textContent = data.users.length + ' users loaded.';
+        status.className = 'status success';
+        box.innerHTML = '';
+        for (const user of data.users) {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML =
+            '<strong>' + user.display_name + '</strong><br>' +
+            '<span class="muted">' + user.email + ' · ' + user.username + '</span><br>' +
+            '<span class="small muted">Phone: ' + (user.phone_number || 'none') + ' · Contacts: ' + user.contacts_count + ' · Memory: ' + user.memory_count + ' · Trusted: ' + user.trusted_count + '</span><br>' +
+            '<span class="small muted">Admin: ' + (user.is_admin ? 'yes' : 'no') + ' · Disabled: ' + (user.is_disabled ? 'yes' : 'no') + '</span>' +
+            '<div class="cta-row" style="margin-top:10px;"><button class="secondary" onclick="toggleUser(\\'' + user.user_id + '\\',' + (!user.is_disabled) + ')">' + (user.is_disabled ? 'Enable user' : 'Disable user') + '</button><button class="secondary" onclick="toggleAdmin(\\'' + user.user_id + '\\',' + (!user.is_admin) + ')">' + (user.is_admin ? 'Remove admin' : 'Make admin') + '</button></div>';
+          box.appendChild(div);
+        }
+      }
+
+      async function toggleUser(userId, nextValue) {
+        await fetch('/app/api/admin/users/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, is_disabled: nextValue })
+        });
+        loadAdminUsers();
+      }
+
+      async function toggleAdmin(userId, nextValue) {
+        await fetch('/app/api/admin/users/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, is_admin: nextValue })
+        });
+        loadAdminUsers();
+      }
+
+      async function loadAnalytics() {
+        const res = await fetch('/app/api/admin/analytics');
+        const status = document.getElementById('analytics-status');
+        const cards = document.getElementById('analytics-cards');
+        const users = document.getElementById('analytics-users');
+        if (!res.ok) {
+          status.textContent = 'Could not load analytics.';
+          status.className = 'status warning-text';
+          return;
+        }
+        const data = await res.json();
+        status.textContent = 'Analytics refreshed.';
+        status.className = 'status success';
+        cards.innerHTML = '';
+        users.innerHTML = '';
+        for (const [label, value] of Object.entries(data.totals || {})) {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML = '<strong>' + label.replaceAll('_', ' ') + '</strong><br><span class="big-stat">' + value + '</span>';
+          cards.appendChild(div);
+        }
+        for (const row of data.recent_users || []) {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML = '<strong>' + row.display_name + '</strong><br><span class="muted">' + row.email + '</span><br><span class="small muted">Joined: ' + row.created_at + '</span>';
+          users.appendChild(div);
+        }
       }
 
       async function logoutUser() {
@@ -906,47 +1042,108 @@ def render_app_page() -> str:
 
 
 def render_download_page(user_name: str) -> str:
-    body = f"""
+    body = """
     <section class="hero">
       <div class="badge-row">
-        <div class="badge"><strong>Install access unlocked</strong></div>
-        <div class="badge">Account-linked onboarding</div>
-        <div class="badge">Ready for friend testing</div>
+        <div class="badge"><strong>Install unlocked</strong></div>
+        <div class="badge">Designed for minimal effort</div>
       </div>
-      <div class="kicker">Install</div>
-      <h1>Put Personal AI Phone on your phone.</h1>
-      <p>Hello {user_name}. This version is designed to work as a mobile-friendly web app right now, so your friends can test it without an app store.</p>
+      <div class="kicker">Send the app to your phone</div>
+      <h1>We can send the link for you.</h1>
+      <p>Hello __USER_NAME__. Instead of asking you to remember steps, this screen focuses on the easiest path: send the app to your phone by text or email.</p>
     </section>
 
-    <section class="layout-2">
+    <section class="grid-2">
       <div class="panel">
-        <h2>How to install it now</h2>
-        <ol class="steps">
-          <li>Open this page on your iPhone or Android browser.</li>
-          <li>Sign in with the same account you created on the web.</li>
-          <li>Choose “Add to Home Screen” in your browser.</li>
-          <li>Open the app from your home screen just like a normal app.</li>
-          <li>Your profile, contacts, memory, and trusted circle stay linked to your account.</li>
-        </ol>
-        <div class="cta-row" style="margin-top:16px;">
+        <h2>Choose the easiest option</h2>
+        <div class="row-2">
+          <button onclick="sendInstallLink('sms')">Text me the app</button>
+          <button class="secondary" onclick="sendInstallLink('email')">Email me the app</button>
+        </div>
+        <div id="install-status" class="status" style="margin-top:14px;">We’ll use your saved phone number or email.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Already on your phone?</h2>
+        <p class="small">If you are already on the phone you want to use, open your assistant and keep it handy from there.</p>
+        <div class="cta-row">
           <a class="button" href="/app">Open my assistant</a>
           <a class="button secondary" href="/">Back to home</a>
         </div>
       </div>
+    </section>
 
-      <div class="panel">
-        <h2>Share this with a friend</h2>
-        <div class="qr-box">
-          <p class="small muted">Open this link on the phone you want to test</p>
-          <div class="install-link">https://telefon-phi.vercel.app</div>
-          <p class="small muted" style="margin-top:12px;">
-            Version 1 is a web app with account-based onboarding. The same profile can later connect to the deeper native app experience.
-          </p>
-        </div>
+    <script>
+      async function sendInstallLink(channel) {
+        const res = await fetch('/app/api/install-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel })
+        });
+        const data = await res.json();
+        const el = document.getElementById('install-status');
+        el.textContent = data.message || 'Your install link is ready.';
+        el.className = 'status success';
+        if (data.action_url) window.open(data.action_url, '_blank');
+      }
+    </script>
+    """
+    body = body.replace("__USER_NAME__", user_name)
+    return _base_shell("Install Personal AI Phone", body, app_shell=True)
+
+
+def render_reset_password_page() -> str:
+    body = """
+    <section class="hero">
+      <div class="badge-row">
+        <div class="badge"><strong>Password reset</strong></div>
+        <div class="badge">Short and simple</div>
+      </div>
+      <div class="kicker">Reset password</div>
+      <h1>Choose a new password.</h1>
+      <p>Use this screen only if you asked for password help.</p>
+    </section>
+
+    <section class="panel">
+      <div class="form">
+        <label>Reset link token
+          <input id="reset-token" />
+        </label>
+        <label>New password
+          <input id="reset-password" type="password" placeholder="At least 8 characters" />
+        </label>
+        <button onclick="resetPassword()">Save new password</button>
+        <div id="reset-status" class="status">Paste or open your reset link here.</div>
       </div>
     </section>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      if (token) document.getElementById('reset-token').value = token;
+
+      async function resetPassword() {
+        const res = await fetch('/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: document.getElementById('reset-token').value,
+            new_password: document.getElementById('reset-password').value
+          })
+        });
+        const data = await res.json();
+        const el = document.getElementById('reset-status');
+        if (!res.ok) {
+          el.textContent = data.detail || 'Could not reset password.';
+          el.className = 'status warning-text';
+          return;
+        }
+        el.textContent = data.message || 'Password updated.';
+        el.className = 'status success';
+      }
+    </script>
     """
-    return _base_shell("Install Personal AI Phone", body, app_shell=True)
+    return _base_shell("Reset password", body)
 
 
 def manifest_payload() -> str:

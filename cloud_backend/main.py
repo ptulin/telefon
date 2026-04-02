@@ -7,11 +7,13 @@ import hmac
 import os
 import secrets
 import time
-from typing import Any
+from typing import Any, Optional
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, EmailStr
+import requests
 
 from cloud_backend.orchestrator import CloudOrchestrator
 from cloud_backend.store import build_store
@@ -20,6 +22,7 @@ from cloud_backend.web import (
     render_app_page,
     render_download_page,
     render_landing_page,
+    render_reset_password_page,
     service_worker_payload,
 )
 from shared.models import Contact, ConversationEntry, MemoryFact, utc_now
@@ -79,6 +82,7 @@ class RegisterRequest(BaseModel):
     display_name: str
     username: str
     email: EmailStr
+    phone_number: str
     password: str
 
 
@@ -89,6 +93,7 @@ class LoginRequest(BaseModel):
 
 class ProfileUpdateRequest(BaseModel):
     display_name: str
+    phone_number: str = ""
     preference_summary: str = ""
     voice_guidance: bool = True
     text_scale: str = "large"
@@ -111,6 +116,28 @@ class AppMemoryRequest(BaseModel):
     category: str
     summary: str
     detail: str = ""
+
+
+class LinkDeliveryRequest(BaseModel):
+    channel: str
+
+
+class PasswordHelpRequest(BaseModel):
+    identifier: str
+    channel: str = "email"
+
+
+class PasswordResetRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class AdminUserUpdateRequest(BaseModel):
+    user_id: str
+    display_name: str = ""
+    phone_number: str = ""
+    is_admin: Optional[bool] = None
+    is_disabled: Optional[bool] = None
 
 
 def _load_list(name: str) -> list[dict]:
@@ -144,8 +171,30 @@ def _save_user_record(user: dict):
     store.save(_user_lookup_key("username", user["username"]), {"user_id": user["user_id"]})
 
 
+def _replace_user_in_index(user: dict):
+    users = _load_users()
+    replaced = False
+    for idx, row in enumerate(users):
+        if row.get("user_id") == user["user_id"]:
+            users[idx] = user
+            replaced = True
+            break
+    if not replaced:
+        users.append(user)
+    _save_users(users)
+
+
 def _password_hash(salt: str, password: str) -> str:
     return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 200_000).hex()
+
+
+def _normalize_phone(value: str) -> str:
+    digits = "".join(ch for ch in value if ch.isdigit() or ch == "+").strip()
+    return digits
+
+
+def _is_admin(user: dict) -> bool:
+    return bool(user.get("is_admin")) or user.get("email", "").lower().strip() == "ptulin@gmail.com"
 
 
 def _default_user_state(user: dict) -> dict:
@@ -154,6 +203,7 @@ def _default_user_state(user: dict) -> dict:
             "display_name": user["display_name"],
             "username": user["username"],
             "email": user["email"],
+            "phone_number": user.get("phone_number", ""),
         },
         "accessibility": {
             "voice_guidance": True,
@@ -195,6 +245,7 @@ def _normalize_user_state(user: dict, state: dict | None) -> dict:
             "display_name": user["display_name"],
             "username": user["username"],
             "email": user["email"],
+            "phone_number": user.get("phone_number", ""),
         },
         "accessibility": current.get("accessibility", defaults["accessibility"]),
         "preferences": current.get("preferences", defaults["preferences"]),
@@ -295,6 +346,8 @@ def _create_session(user: dict) -> str:
             user["display_name"],
             user["username"],
             user["email"],
+            user.get("phone_number", ""),
+            "1" if _is_admin(user) else "0",
             issued_at,
         ]
     )
@@ -306,10 +359,10 @@ def _create_session(user: dict) -> str:
 def _decode_session(token: str) -> dict | None:
     try:
         decoded = base64.urlsafe_b64decode(token.encode("utf-8")).decode("utf-8")
-        user_id, display_name, username, email, issued_at, signature = decoded.split("|", 5)
+        user_id, display_name, username, email, phone_number, is_admin_flag, issued_at, signature = decoded.split("|", 7)
     except Exception:
         return None
-    payload = "|".join([user_id, display_name, username, email, issued_at])
+    payload = "|".join([user_id, display_name, username, email, phone_number, is_admin_flag, issued_at])
     expected = hmac.new(SESSION_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, signature):
         return None
@@ -318,6 +371,8 @@ def _decode_session(token: str) -> dict | None:
         "display_name": display_name,
         "username": username,
         "email": email,
+        "phone_number": phone_number,
+        "is_admin": is_admin_flag == "1",
         "issued_at": issued_at,
     }
 
@@ -334,6 +389,8 @@ def _current_user(request: Request) -> dict:
         "display_name": session["display_name"],
         "username": session["username"],
         "email": session["email"],
+        "phone_number": session.get("phone_number", ""),
+        "is_admin": session.get("is_admin", False),
     }
 
 
@@ -390,6 +447,158 @@ def _build_daily_briefing(state: dict) -> dict[str, Any]:
     }
 
 
+def _public_app_url(request: Request, path: str = "/app") -> str:
+    return str(request.base_url).rstrip("/") + path
+
+
+def _password_reset_token_key(token: str) -> str:
+    return f"password-reset-{token}.json"
+
+
+def _send_email_via_resend(to_email: str, subject: str, html: str) -> bool:
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    from_email = os.environ.get("RESEND_FROM_EMAIL", "")
+    if not api_key or not from_email:
+        return False
+    response = requests.post(
+        "https://api.resend.com/emails",
+        timeout=20,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={"from": from_email, "to": [to_email], "subject": subject, "html": html},
+    )
+    return response.ok
+
+
+def _send_sms_via_twilio(to_phone: str, body: str) -> bool:
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID", "")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    from_phone = os.environ.get("TWILIO_FROM_NUMBER", "")
+    if not account_sid or not auth_token or not from_phone:
+        return False
+    response = requests.post(
+        f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
+        timeout=20,
+        auth=(account_sid, auth_token),
+        data={"From": from_phone, "To": to_phone, "Body": body},
+    )
+    return response.ok
+
+
+def _deliver_install_link(user: dict, request: Request, channel: str) -> dict[str, Any]:
+    app_url = _public_app_url(request)
+    message = (
+        f"Open your Personal AI Phone here: {app_url} "
+        f"and sign in as {user['email']}."
+    )
+    if channel == "sms":
+        phone = user.get("phone_number", "")
+        if not phone:
+            raise HTTPException(status_code=400, detail="add a phone number first")
+        if _send_sms_via_twilio(phone, message):
+            return {"ok": True, "delivery": "sms-sent", "message": f"Text message sent to {phone}."}
+        sms_url = f"sms:{phone}?body={quote(message)}"
+        return {
+            "ok": True,
+            "delivery": "sms-compose",
+            "message": f"Opening your message app for {phone}.",
+            "action_url": sms_url,
+        }
+
+    email = user["email"]
+    subject = "Your Personal AI Phone link"
+    html = (
+        f"<p>Open your Personal AI Phone here:</p><p><a href=\"{app_url}\">{app_url}</a></p>"
+        f"<p>Sign in with {email}.</p>"
+    )
+    if _send_email_via_resend(email, subject, html):
+        return {"ok": True, "delivery": "email-sent", "message": f"Email sent to {email}."}
+    mailto_url = f"mailto:{quote(email)}?subject={quote(subject)}&body={quote(message)}"
+    return {
+        "ok": True,
+        "delivery": "email-compose",
+        "message": f"Opening your mail app for {email}.",
+        "action_url": mailto_url,
+    }
+
+
+def _create_password_reset(user: dict, request: Request, channel: str) -> dict[str, Any]:
+    token = secrets.token_urlsafe(24)
+    reset_url = _public_app_url(request, f"/reset-password?token={token}")
+    store.save(
+        _password_reset_token_key(token),
+        {
+            "user_id": user["user_id"],
+            "expires_at": time.time() + 3600,
+        },
+    )
+    message = (
+        f"Reset your Personal AI Phone password here: {reset_url}"
+    )
+    if channel == "sms" and user.get("phone_number"):
+        if _send_sms_via_twilio(user["phone_number"], message):
+            return {"ok": True, "delivery": "sms-sent", "message": f"Password reset text sent to {user['phone_number']}."}
+        return {"ok": True, "delivery": "direct-link", "message": "Open the reset page to choose a new password.", "action_url": reset_url}
+
+    if _send_email_via_resend(
+        user["email"],
+        "Reset your Personal AI Phone password",
+        f"<p>Choose a new password here:</p><p><a href=\"{reset_url}\">{reset_url}</a></p>",
+    ):
+        return {"ok": True, "delivery": "email-sent", "message": f"Password reset sent to {user['email']}."}
+    return {"ok": True, "delivery": "direct-link", "message": "Open the reset page to choose a new password.", "action_url": reset_url}
+
+
+def _require_admin(user: dict):
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="admin only")
+
+
+def _all_users() -> list[dict]:
+    seen: dict[str, dict] = {}
+    for user in _load_users():
+        if user.get("user_id"):
+            seen[user["user_id"]] = user
+    return list(seen.values())
+
+
+def _admin_user_summary(user: dict) -> dict[str, Any]:
+    state = _load_user_state(user["user_id"], user)
+    memory_count = sum(len(state.get(bucket, [])) for bucket in ("preferences", "habits", "relationships", "life_details"))
+    return {
+        "user_id": user["user_id"],
+        "display_name": user["display_name"],
+        "username": user["username"],
+        "email": user["email"],
+        "phone_number": user.get("phone_number", ""),
+        "created_at": user.get("created_at", ""),
+        "last_login_at": user.get("last_login_at", ""),
+        "is_admin": _is_admin(user),
+        "is_disabled": bool(user.get("is_disabled")),
+        "contacts_count": len(state.get("contacts", [])),
+        "trusted_count": len(state.get("trusted_circle", [])),
+        "memory_count": memory_count,
+    }
+
+
+def _analytics_snapshot() -> dict[str, Any]:
+    users = sorted(_all_users(), key=lambda row: row.get("created_at", ""), reverse=True)
+    summaries = [_admin_user_summary(user) for user in users]
+    return {
+        "totals": {
+            "users": len(users),
+            "admins": sum(1 for row in summaries if row["is_admin"]),
+            "disabled": sum(1 for row in summaries if row["is_disabled"]),
+            "contacts": sum(row["contacts_count"] for row in summaries),
+            "trusted_people": sum(row["trusted_count"] for row in summaries),
+            "memory_items": sum(row["memory_count"] for row in summaries),
+        },
+        "recent_users": summaries[:10],
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
     try:
@@ -401,14 +610,20 @@ def root(request: Request):
 
 @app.get("/app", response_class=HTMLResponse)
 def app_page(request: Request):
-    _current_user(request)
-    return HTMLResponse(render_app_page())
+    try:
+        _current_user(request)
+        return HTMLResponse(render_app_page())
+    except HTTPException:
+        return RedirectResponse("/", status_code=302)
 
 
 @app.get("/download", response_class=HTMLResponse)
 def download_page(request: Request):
-    user = _current_user(request)
-    return HTMLResponse(render_download_page(user["display_name"]))
+    try:
+        user = _current_user(request)
+        return HTMLResponse(render_download_page(user["display_name"]))
+    except HTTPException:
+        return RedirectResponse("/", status_code=302)
 
 
 @app.get("/manifest.webmanifest")
@@ -425,6 +640,9 @@ def service_worker():
 def register(payload: RegisterRequest):
     if len(payload.password) < 8:
         raise HTTPException(status_code=400, detail="password must be at least 8 characters")
+    phone_number = _normalize_phone(payload.phone_number)
+    if not phone_number:
+        raise HTTPException(status_code=400, detail="phone number is required")
     if _find_user(payload.email):
         raise HTTPException(status_code=400, detail="email is already registered")
     if _find_user(payload.username):
@@ -437,9 +655,13 @@ def register(payload: RegisterRequest):
         "display_name": payload.display_name.strip() or payload.username.strip(),
         "username": payload.username.strip(),
         "email": payload.email.strip(),
+        "phone_number": phone_number,
         "password_salt": salt,
         "password_hash": _password_hash(salt, payload.password),
         "created_at": utc_now(),
+        "last_login_at": utc_now(),
+        "is_admin": payload.email.strip().lower() == "ptulin@gmail.com",
+        "is_disabled": False,
     }
     users.append(user)
     _save_users(users)
@@ -461,10 +683,15 @@ def login(payload: LoginRequest):
         user = _find_user_by_id(user["user_id"]) or user
     if "password_salt" not in user or "password_hash" not in user:
         raise HTTPException(status_code=401, detail="account not ready")
+    if user.get("is_disabled"):
+        raise HTTPException(status_code=403, detail="account disabled")
     expected = _password_hash(user["password_salt"], payload.password)
     if not hmac.compare_digest(expected, user["password_hash"]):
         raise HTTPException(status_code=401, detail="incorrect password")
 
+    user["last_login_at"] = utc_now()
+    _replace_user_in_index(user)
+    _save_user_record(user)
     token = _create_session(user)
     response = JSONResponse({"ok": True, "user": {"display_name": user["display_name"], "username": user["username"]}})
     response.set_cookie(SESSION_COOKIE, token, httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 24 * 30)
@@ -478,34 +705,128 @@ def logout(request: Request):
     return response
 
 
+@app.post("/auth/password-help")
+def password_help(payload: PasswordHelpRequest, request: Request):
+    user = _find_user(payload.identifier)
+    if not user:
+        return {"ok": True, "message": "If that account exists, password help is ready."}
+    return _create_password_reset(user, request, payload.channel)
+
+
+@app.post("/auth/reset-password")
+def reset_password(payload: PasswordResetRequest):
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="password must be at least 8 characters")
+    token_data = store.load(_password_reset_token_key(payload.token), None)
+    if not token_data or token_data.get("expires_at", 0) < time.time():
+        raise HTTPException(status_code=400, detail="reset link has expired")
+    user = _find_user_by_id(token_data["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+    salt = secrets.token_hex(16)
+    user["password_salt"] = salt
+    user["password_hash"] = _password_hash(salt, payload.new_password)
+    _replace_user_in_index(user)
+    _save_user_record(user)
+    store.save(_password_reset_token_key(payload.token), {"used": True, "used_at": utc_now()})
+    return {"ok": True, "message": "Password updated. You can sign in now."}
+
+
 @app.get("/auth/me")
 def auth_me(request: Request):
     user = _current_user(request)
-    state = _load_user_state(user["user_id"], user)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    state = _load_user_state(user["user_id"], full_user)
     return {
         "user": {
-            "display_name": user["display_name"],
-            "username": user["username"],
-            "email": user["email"],
+            "display_name": full_user["display_name"],
+            "username": full_user["username"],
+            "email": full_user["email"],
+            "phone_number": full_user.get("phone_number", ""),
+            "is_admin": _is_admin(full_user),
         },
         "state": state,
         "daily_briefing": _build_daily_briefing(state),
     }
+
+
+@app.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page():
+    return HTMLResponse(render_reset_password_page())
 
 
 @app.get("/app/api/bootstrap")
 def app_bootstrap(request: Request):
     user = _current_user(request)
-    state = _load_user_state(user["user_id"], user)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    state = _load_user_state(user["user_id"], full_user)
     return {
         "user": {
-            "display_name": user["display_name"],
-            "username": user["username"],
-            "email": user["email"],
+            "display_name": full_user["display_name"],
+            "username": full_user["username"],
+            "email": full_user["email"],
+            "phone_number": full_user.get("phone_number", ""),
+            "is_admin": _is_admin(full_user),
         },
         "state": state,
         "daily_briefing": _build_daily_briefing(state),
     }
+
+
+@app.post("/app/api/install-link")
+def send_install_link(payload: LinkDeliveryRequest, request: Request):
+    user = _current_user(request)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    return _deliver_install_link(full_user, request, payload.channel)
+
+
+@app.post("/app/api/password-help")
+def signed_in_password_help(payload: LinkDeliveryRequest, request: Request):
+    user = _current_user(request)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    return _create_password_reset(full_user, request, payload.channel)
+
+
+@app.get("/app/api/admin/users")
+def admin_users(request: Request):
+    user = _current_user(request)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    _require_admin(full_user)
+    users = sorted(_all_users(), key=lambda row: row.get("created_at", ""), reverse=True)
+    return {"users": [_admin_user_summary(row) for row in users]}
+
+
+@app.post("/app/api/admin/users/update")
+def admin_update_user(payload: AdminUserUpdateRequest, request: Request):
+    user = _current_user(request)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    _require_admin(full_user)
+    target = _find_user_by_id(payload.user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="user not found")
+    if payload.display_name.strip():
+        target["display_name"] = payload.display_name.strip()
+    if payload.phone_number.strip():
+        target["phone_number"] = _normalize_phone(payload.phone_number)
+    if payload.is_admin is not None:
+        target["is_admin"] = payload.is_admin
+    if payload.is_disabled is not None:
+        target["is_disabled"] = payload.is_disabled
+    _replace_user_in_index(target)
+    _save_user_record(target)
+    state = _load_user_state(target["user_id"], target)
+    state["profile"]["display_name"] = target["display_name"]
+    state["profile"]["phone_number"] = target.get("phone_number", "")
+    _save_user_state(target["user_id"], state, target)
+    return {"ok": True, "user": _admin_user_summary(target)}
+
+
+@app.get("/app/api/admin/analytics")
+def admin_analytics(request: Request):
+    user = _current_user(request)
+    full_user = _find_user_by_id(user["user_id"]) or user
+    _require_admin(full_user)
+    return _analytics_snapshot()
 
 
 @app.post("/app/api/profile")
@@ -515,6 +836,7 @@ def update_profile(payload: ProfileUpdateRequest, request: Request):
     for row in users:
         if row["user_id"] == user["user_id"]:
             row["display_name"] = payload.display_name.strip() or row["display_name"]
+            row["phone_number"] = _normalize_phone(payload.phone_number) or row.get("phone_number", "")
             user = row
             break
     _save_users(users)
@@ -532,6 +854,7 @@ def update_profile(payload: ProfileUpdateRequest, request: Request):
             }
         ]
     state["profile"]["display_name"] = user["display_name"]
+    state["profile"]["phone_number"] = user.get("phone_number", "")
     _save_user_state(user["user_id"], state, user)
     return {
         "ok": True,
