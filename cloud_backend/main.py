@@ -11,6 +11,7 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, EmailStr
 import requests
@@ -38,6 +39,27 @@ orchestrator = CloudOrchestrator(
 
 SESSION_COOKIE = "personal_ai_session"
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "personal-ai-phone-session-secret")
+
+
+def _friendly_validation_message(exc: RequestValidationError) -> str:
+    errors = exc.errors()
+    if not errors:
+        return "Please check your details and try again."
+    first = errors[0]
+    field = first.get("loc", ["field"])[-1]
+    if field == "email":
+        return "Enter a valid email address."
+    if field == "phone_number":
+        return "Enter a valid phone number."
+    if field == "password":
+        return "Enter your password."
+    label = str(field).replace("_", " ")
+    return f"Please check your {label} and try again."
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content={"detail": _friendly_validation_message(exc)})
 
 
 class QueryRequest(BaseModel):

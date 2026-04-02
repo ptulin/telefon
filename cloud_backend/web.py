@@ -376,6 +376,18 @@ def render_landing_page() -> str:
     </section>
 
     <script>
+      function apiMessage(data, fallback) {
+        if (!data) return fallback;
+        if (typeof data.detail === 'string') return data.detail;
+        if (typeof data.message === 'string') return data.message;
+        if (Array.isArray(data.detail) && data.detail.length) {
+          const first = data.detail[0];
+          if (typeof first === 'string') return first;
+          if (first && typeof first.msg === 'string') return first.msg;
+        }
+        return fallback;
+      }
+
       async function registerUser() {
         const res = await fetch('/auth/register', {
           method: 'POST',
@@ -391,7 +403,7 @@ def render_landing_page() -> str:
         const data = await res.json();
         const el = document.getElementById('register-status');
         if (!res.ok) {
-          el.textContent = data.detail || 'Registration failed.';
+          el.textContent = apiMessage(data, 'Registration failed.');
           el.className = 'status warning-text';
           return;
         }
@@ -410,7 +422,7 @@ def render_landing_page() -> str:
         const data = await res.json();
         const el = document.getElementById('login-status');
         if (!res.ok) {
-          el.textContent = data.detail || 'Login failed.';
+          el.textContent = apiMessage(data, 'Login failed.');
           el.className = 'status warning-text';
           return;
         }
@@ -428,6 +440,11 @@ def render_landing_page() -> str:
         });
         const data = await res.json();
         const el = document.getElementById('help-status');
+        if (!res.ok) {
+          el.textContent = apiMessage(data, 'Could not prepare password help.');
+          el.className = 'status warning-text';
+          return;
+        }
         el.textContent = data.message || 'Password help is ready.';
         el.className = 'status success';
         if (data.action_url) {
