@@ -4,19 +4,6 @@ import json
 
 
 def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
-    public_nav = """
-    <div class="nav">
-      <div class="brand-wrap">
-        <div class="brand">Personal AI Phone</div>
-        <div class="tagline">A calmer assistant for everyday life</div>
-      </div>
-      <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/app">My AI</a>
-        <a href="/download">Install</a>
-      </div>
-    </div>
-    """
     app_nav = """
     <div class="nav">
       <div class="brand-wrap">
@@ -31,7 +18,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       </div>
     </div>
     """
-    nav = app_nav if app_shell else public_nav
+    nav = app_nav if app_shell else ""
     return f"""
 <!doctype html>
 <html lang="en">
@@ -456,15 +443,9 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
 def render_landing_page() -> str:
     body = """
     <section class="hero">
-      <div class="feature-carousel" aria-live="polite">
-        <div class="feature-carousel-card">
-          <div class="feature-carousel-title" id="landing-feature-title">Friend-testable v1 with no app store required</div>
-        </div>
-        <div class="feature-carousel-meta" id="landing-feature-dots" aria-hidden="true">
-          <span class="feature-dot active"></span>
-          <span class="feature-dot"></span>
-          <span class="feature-dot"></span>
-        </div>
+      <div class="brand-wrap">
+        <div class="brand">Personal AI Phone</div>
+        <div class="tagline">A calmer assistant for everyday life</div>
       </div>
       <div class="kicker">One helpful assistant</div>
       <h1>Stop hunting for apps. Ask for help once.</h1>
@@ -532,12 +513,6 @@ def render_landing_page() -> str:
     </section>
 
     <script>
-      const landingFeatures = [
-        'Friend-testable v1 with no app store required',
-        'Email the app to your phone after sign-in',
-        'Keep contacts, memory, and helpers together'
-      ];
-
       function normalizeEmail(value) {
         return (value || '').trim().toLowerCase();
       }
@@ -559,18 +534,6 @@ def render_landing_page() -> str:
         input.addEventListener('input', () => {
           input.value = formatPhone(input.value);
         });
-      }
-
-      function startFeatureCarousel() {
-        const title = document.getElementById('landing-feature-title');
-        const dots = Array.from(document.querySelectorAll('#landing-feature-dots .feature-dot'));
-        if (!title || dots.length !== landingFeatures.length) return;
-        let current = 0;
-        window.setInterval(() => {
-          current = (current + 1) % landingFeatures.length;
-          title.textContent = landingFeatures[current];
-          dots.forEach((dot, index) => dot.classList.toggle('active', index === current));
-        }, 3000);
       }
 
       function apiMessage(data, fallback) {
@@ -702,7 +665,6 @@ def render_landing_page() -> str:
       }
 
       setPhoneFormatting('register-phone');
-      startFeatureCarousel();
     </script>
     """
     return _base_shell("Personal AI Phone", body)
