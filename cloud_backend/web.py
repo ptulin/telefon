@@ -292,8 +292,8 @@ def render_landing_page() -> str:
     <section class="hero">
       <div class="badge-row">
         <div class="badge"><strong>Friend-testable v1</strong> no app store required</div>
-        <div class="badge">Large text and fewer steps</div>
-        <div class="badge">Works for older and non-technical users</div>
+        <div class="badge">Email the app to your phone</div>
+        <div class="badge">Keep contacts, memory, and helpers together</div>
       </div>
       <div class="kicker">One helpful assistant</div>
       <h1>Stop hunting for apps. Ask for help once.</h1>
@@ -362,20 +362,43 @@ def render_landing_page() -> str:
 
     <section class="grid-3">
       <div class="card">
-        <h3>Minimal effort</h3>
-        <p>Big controls, short forms, and direct actions reduce stress and confusion.</p>
+        <h3>Your profile becomes your contact card</h3>
+        <p>Save your name, email, and phone once so your assistant can use the same identity everywhere.</p>
       </div>
       <div class="card">
-        <h3>Phone-ready onboarding</h3>
-        <p>Instead of long install instructions, the app can send a link to the person’s phone by email.</p>
+        <h3>Email the app to your phone</h3>
+        <p>After sign-in, send yourself the app link and open the same account on your phone right away.</p>
       </div>
       <div class="card">
-        <h3>Built for the future</h3>
-        <p>This starts as a web app and grows toward a full AI phone companion and eventually a true thin client.</p>
+        <h3>Keep helpers and contacts in one place</h3>
+        <p>Store family, caregivers, and important people so the assistant can become more useful over time.</p>
       </div>
     </section>
 
     <script>
+      function normalizeEmail(value) {
+        return (value || '').trim().toLowerCase();
+      }
+
+      function formatPhone(value) {
+        const digits = (value || '').replace(/\D/g, '').slice(0, 11);
+        if (!digits) return '';
+        if (digits.length === 11 && digits.startsWith('1')) {
+          return `+1 ${digits.slice(1, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`.trim();
+        }
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+        return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+      }
+
+      function setPhoneFormatting(id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener('input', () => {
+          input.value = formatPhone(input.value);
+        });
+      }
+
       function apiMessage(data, fallback) {
         if (!data) return fallback;
         if (typeof data.detail === 'string') return data.detail;
@@ -388,16 +411,34 @@ def render_landing_page() -> str:
         return fallback;
       }
 
+      function requireValue(value, message, statusId) {
+        if ((value || '').trim()) return true;
+        const el = document.getElementById(statusId);
+        el.textContent = message;
+        el.className = 'status warning-text';
+        return false;
+      }
+
       async function registerUser() {
+        const firstName = document.getElementById('register-first-name').value.trim();
+        const lastName = document.getElementById('register-last-name').value.trim();
+        const email = normalizeEmail(document.getElementById('register-email').value);
+        const phone = document.getElementById('register-phone').value.trim();
+        const password = document.getElementById('register-password').value;
+        if (!requireValue(firstName, 'Enter your first name.', 'register-status')) return;
+        if (!requireValue(lastName, 'Enter your last name.', 'register-status')) return;
+        if (!requireValue(email, 'Enter your email address.', 'register-status')) return;
+        if (!requireValue(phone, 'Enter your phone number.', 'register-status')) return;
+        if (!requireValue(password, 'Create a password.', 'register-status')) return;
         const res = await fetch('/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            first_name: document.getElementById('register-first-name').value,
-            last_name: document.getElementById('register-last-name').value,
-            email: document.getElementById('register-email').value,
-            phone_number: document.getElementById('register-phone').value,
-            password: document.getElementById('register-password').value
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            phone_number: phone,
+            password
           })
         });
         const data = await res.json();
@@ -411,12 +452,16 @@ def render_landing_page() -> str:
       }
 
       async function loginUser() {
+        const email = normalizeEmail(document.getElementById('login-email').value);
+        const password = document.getElementById('login-password').value;
+        if (!requireValue(email, 'Enter the email address for your account.', 'login-status')) return;
+        if (!requireValue(password, 'Enter your password.', 'login-status')) return;
         const res = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: document.getElementById('login-email').value,
-            password: document.getElementById('login-password').value
+            email,
+            password
           })
         });
         const data = await res.json();
@@ -430,11 +475,13 @@ def render_landing_page() -> str:
       }
 
       async function sendPasswordHelp() {
+        const email = normalizeEmail(document.getElementById('help-email').value);
+        if (!requireValue(email, 'Enter the email address for your account.', 'help-status')) return;
         const res = await fetch('/auth/password-help', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: document.getElementById('help-email').value,
+            email,
             channel: 'email'
           })
         });
@@ -451,6 +498,8 @@ def render_landing_page() -> str:
           window.open(data.action_url, '_blank');
         }
       }
+
+      setPhoneFormatting('register-phone');
     </script>
     """
     return _base_shell("Personal AI Phone", body)
@@ -461,13 +510,13 @@ def render_app_page() -> str:
     <section class="hero">
       <div class="badge-row">
         <div class="badge"><strong>My AI</strong> personal dashboard</div>
-        <div class="badge">Bigger text and simpler flows</div>
+        <div class="badge">Calls, memory, and trusted helpers together</div>
       </div>
       <div class="layout-2">
         <div class="stack">
           <div class="kicker">Welcome</div>
           <h1 id="welcome-name">Loading...</h1>
-          <p id="welcome-copy">Preparing your assistant and your easier phone setup.</p>
+          <p id="welcome-copy">Preparing your assistant, your contacts, and your account.</p>
           <div class="tab-row" id="tab-row"></div>
         </div>
         <div class="summary-box">
