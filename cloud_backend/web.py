@@ -177,6 +177,20 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
         linear-gradient(180deg, rgba(220,233,255,0.55), rgba(255,253,250,0.96) 42%),
         var(--surface);
     }}
+    .landing-hero {{
+      gap: 20px;
+      align-content: start;
+    }}
+    .landing-hero h1 {{
+      max-width: none;
+      width: 100%;
+      text-wrap: balance;
+    }}
+    .landing-hero p {{
+      margin: 0;
+      max-width: 68ch;
+      font-size: 1.08rem;
+    }}
     .panel, .card {{
       padding: 22px;
     }}
@@ -400,6 +414,15 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
         border-bottom: 0;
       }}
     }}
+    @media (min-width: 981px) {{
+      .landing-hero {{
+        gap: 22px;
+      }}
+      .landing-hero h1 {{
+        font-size: clamp(3.3rem, 7vw, 5.4rem);
+        line-height: 0.94;
+      }}
+    }}
     @media (max-width: 760px) {{
       .page {{
         padding: 12px 12px 28px;
@@ -483,7 +506,7 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
 
 def render_landing_page() -> str:
     body = """
-    <section class="hero">
+    <section class="hero landing-hero">
       <div class="brand-lockup">
         <div class="brand-mark" aria-hidden="true">
           <span class="brand-mark-dot"></span>
