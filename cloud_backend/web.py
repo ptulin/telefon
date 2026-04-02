@@ -897,6 +897,22 @@ def render_app_page() -> str:
         <div class="panel">
           <div class="kicker">Contacts</div>
           <h2>Important people</h2>
+          <div class="summary-box" style="margin-bottom:16px;">
+            <h3>Find someone on Telefon</h3>
+            <div class="form">
+              <label>Name, email, or phone
+                <input id="directory-query" placeholder="Search by name, email, or phone number" />
+              </label>
+              <div class="cta-row">
+                <button class="secondary" onclick="searchTelefonUsers()">Find on Telefon</button>
+                <button class="secondary" onclick="importBrowserContacts()">Import from this device</button>
+                <button class="secondary" onclick="document.getElementById('contacts-file-input').click()">Import CSV</button>
+              </div>
+              <input id="contacts-file-input" type="file" accept=".csv,text/csv" style="display:none" onchange="importContactsCsv(event)" />
+              <div id="directory-status" class="status">Use a name, email, or phone number to add another Telefon user without retyping everything.</div>
+              <div id="directory-results" class="list"></div>
+            </div>
+          </div>
           <div class="form">
             <div class="row-2">
               <label>Name
@@ -916,7 +932,7 @@ def render_app_page() -> str:
               </select>
             </label>
             <button onclick="addContact()">Add contact</button>
-            <div id="contact-status" class="status">Shared contacts are for family, caregivers, or other trusted support.</div>
+            <div id="contact-status" class="status">You can add people manually, search for a Telefon user, or import contacts from a supported browser or CSV file.</div>
           </div>
           <div id="contacts-list" class="list" style="margin-top:16px;"></div>
         </div>
@@ -1117,9 +1133,48 @@ def render_app_page() -> str:
         for (const contact of contacts) {
           const div = document.createElement('div');
           div.className = 'item';
-          div.innerHTML = '<strong>' + contact.name + '</strong><br><span class="muted">' + contact.phone + '</span><br><span class="small muted">' + (contact.notes || 'No notes yet.') + (contact.shared ? ' · shared contact' : '') + '</span>';
+          const meta = [contact.phone || 'No phone saved yet.', contact.email || '', contact.notes || 'No notes yet.', contact.shared ? 'shared contact' : '']
+            .filter(Boolean)
+            .join(' · ');
+          div.innerHTML =
+            '<strong>' + contact.name + '</strong><br><span class="small muted">' + meta + '</span>' +
+            '<div class="cta-row" style="margin-top:10px;">' +
+            '<button class="secondary" onclick="callNumber(\\'' + String(contact.phone || '').replace(/'/g, '') + '\\')">Call</button>' +
+            '<button class="secondary" onclick="fillPrompt(\\'Call ' + String(contact.name || '').replace(/'/g, '') + '\\'); document.getElementById(\\'assistant-mode\\').value = \\'call\\'; setTab(\\'home\\');">Ask AI to call</button>' +
+            '</div>';
           list.appendChild(div);
         }
+      }
+
+      function renderDirectoryResults(users) {
+        const list = document.getElementById('directory-results');
+        list.innerHTML = '';
+        if (!users.length) {
+          list.textContent = 'No Telefon users matched that search yet.';
+          return;
+        }
+        for (const user of users) {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML =
+            '<strong>' + user.display_name + '</strong><br>' +
+            '<span class="small muted">' + [user.email, user.phone_number || 'No phone saved yet.'].filter(Boolean).join(' · ') + '</span>' +
+            '<div class="cta-row" style="margin-top:10px;">' +
+            '<button class="secondary" onclick="addTelefonUserToContacts(\\'' + user.user_id + '\\')">Add to my contacts</button>' +
+            '<button class="secondary" onclick="callNumber(\\'' + String(user.phone_number || '').replace(/'/g, '') + '\\')">Call</button>' +
+            '</div>';
+          list.appendChild(div);
+        }
+      }
+
+      function callNumber(number) {
+        const digits = String(number || '').replace(/[^+\\d]/g, '');
+        if (!digits) {
+          setAssistantStatus('This person does not have a phone number saved yet.', 'assistant-reply warning-text');
+          setTab('home');
+          return;
+        }
+        window.location.href = 'tel:' + digits;
       }
 
       function renderTrusted() {
@@ -1285,6 +1340,131 @@ def render_app_page() -> str:
         document.getElementById('contact-notes').value = '';
         hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
         setTab('profile');
+      }
+
+      async function searchTelefonUsers() {
+        const query = document.getElementById('directory-query').value.trim();
+        const status = document.getElementById('directory-status');
+        if (query.length < 2) {
+          status.textContent = 'Type at least two characters to search Telefon users.';
+          status.className = 'status warning-text';
+          renderDirectoryResults([]);
+          return;
+        }
+        status.textContent = 'Searching Telefon users...';
+        status.className = 'status';
+        const res = await fetch('/app/api/user-search?q=' + encodeURIComponent(query));
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = data.detail || 'Could not search Telefon users.';
+          status.className = 'status warning-text';
+          renderDirectoryResults([]);
+          return;
+        }
+        status.textContent = data.users.length ? (data.users.length + ' Telefon users found.') : 'No Telefon users matched that search.';
+        status.className = 'status success';
+        renderDirectoryResults(data.users || []);
+      }
+
+      async function addTelefonUserToContacts(userId) {
+        const res = await fetch('/app/api/contacts/add-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        const data = await res.json();
+        const status = document.getElementById('directory-status');
+        if (!res.ok) {
+          status.textContent = data.detail || 'Could not add that Telefon user.';
+          status.className = 'status warning-text';
+          return;
+        }
+        status.textContent = data.added ? 'Telefon user added to your contacts.' : 'That user is already in your contacts.';
+        status.className = 'status success';
+        hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
+        setTab('profile');
+      }
+
+      async function importContactsRows(rows) {
+        const status = document.getElementById('directory-status');
+        if (!rows.length) {
+          status.textContent = 'No contacts were ready to import.';
+          status.className = 'status warning-text';
+          return;
+        }
+        status.textContent = 'Importing contacts...';
+        status.className = 'status';
+        const res = await fetch('/app/api/contacts/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contacts: rows })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = data.detail || 'Could not import contacts.';
+          status.className = 'status warning-text';
+          return;
+        }
+        status.textContent = data.added_count + ' contacts imported.';
+        status.className = 'status success';
+        hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
+        setTab('profile');
+      }
+
+      async function importBrowserContacts() {
+        const status = document.getElementById('directory-status');
+        if (!(navigator.contacts && navigator.contacts.select)) {
+          status.textContent = 'This browser does not support direct contact import. Use Import CSV instead.';
+          status.className = 'status warning-text';
+          return;
+        }
+        try {
+          const picked = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+          const rows = (picked || []).map((entry) => ({
+            name: Array.isArray(entry.name) ? (entry.name[0] || '') : (entry.name || ''),
+            phone: Array.isArray(entry.tel) ? (entry.tel[0] || '') : (entry.tel || ''),
+            email: Array.isArray(entry.email) ? (entry.email[0] || '') : (entry.email || ''),
+            notes: 'Imported from device',
+            shared: false
+          })).filter((entry) => entry.name || entry.phone || entry.email);
+          await importContactsRows(rows);
+        } catch (error) {
+          status.textContent = 'Contact import was cancelled.';
+          status.className = 'status warning-text';
+        }
+      }
+
+      async function importContactsCsv(event) {
+        const file = event.target.files && event.target.files[0];
+        const status = document.getElementById('directory-status');
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const lines = text.split(/\\r?\\n/).filter(Boolean);
+          if (!lines.length) {
+            status.textContent = 'The CSV file was empty.';
+            status.className = 'status warning-text';
+            return;
+          }
+          const headers = lines[0].split(',').map((value) => value.trim().toLowerCase());
+          const rows = lines.slice(1).map((line) => {
+            const cols = line.split(',').map((value) => value.trim());
+            const row = Object.fromEntries(headers.map((header, idx) => [header, cols[idx] || '']));
+            return {
+              name: row.name || row.full_name || row['full name'] || '',
+              phone: row.phone || row.mobile || row.tel || '',
+              email: row.email || '',
+              notes: row.notes || row.note || 'Imported from CSV',
+              shared: false
+            };
+          }).filter((row) => row.name || row.phone || row.email);
+          await importContactsRows(rows);
+        } catch (error) {
+          status.textContent = 'Could not read that CSV file.';
+          status.className = 'status warning-text';
+        } finally {
+          event.target.value = '';
+        }
       }
 
       async function addTrustedPerson() {
@@ -1456,6 +1636,8 @@ def render_app_page() -> str:
         }
       });
 
+      setPhoneFormatting('profile-phone-number');
+      setPhoneFormatting('contact-phone');
       fetchBootstrap();
     </script>
     """

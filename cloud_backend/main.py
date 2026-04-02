@@ -150,6 +150,22 @@ class AppMemoryRequest(BaseModel):
     detail: str = ""
 
 
+class DirectoryAddRequest(BaseModel):
+    user_id: str
+
+
+class ContactImportRow(BaseModel):
+    name: str
+    phone: str = ""
+    email: str = ""
+    notes: str = ""
+    shared: bool = False
+
+
+class ContactImportRequest(BaseModel):
+    contacts: list[ContactImportRow]
+
+
 class LinkDeliveryRequest(BaseModel):
     channel: str = "email"
 
@@ -708,6 +724,39 @@ def _admin_user_summary(user: dict) -> dict[str, Any]:
     }
 
 
+def _public_user_summary(user: dict) -> dict[str, Any]:
+    user = _ensure_user_shape(user)
+    return {
+        "user_id": user["user_id"],
+        "display_name": user["display_name"],
+        "first_name": user["first_name"],
+        "last_name": user["last_name"],
+        "email": user["email"],
+        "phone_number": user.get("phone_number", ""),
+    }
+
+
+def _contact_key(contact: dict) -> str:
+    if contact.get("linked_user_id"):
+        return f"user:{contact['linked_user_id']}"
+    phone = _normalize_phone(str(contact.get("phone", "")))
+    if phone:
+        return f"phone:{phone}"
+    email = str(contact.get("email", "")).strip().lower()
+    if email:
+        return f"email:{email}"
+    return f"name:{str(contact.get('name', '')).strip().lower()}"
+
+
+def _append_contact_if_new(state: dict, contact: dict) -> bool:
+    seen = {_contact_key(existing) for existing in state.get("contacts", [])}
+    key = _contact_key(contact)
+    if key in seen:
+        return False
+    state["contacts"].append(contact)
+    return True
+
+
 def _analytics_snapshot() -> dict[str, Any]:
     users = sorted(_all_users(), key=lambda row: row.get("created_at", ""), reverse=True)
     summaries = [_admin_user_summary(user) for user in users]
@@ -1033,10 +1082,89 @@ def add_app_contact(payload: AppContactRequest, request: Request):
     user = _current_user(request)
     state = _load_user_state(user["user_id"], user)
     contact = Contact.create(payload.name, payload.phone, payload.notes).__dict__
+    contact["phone"] = _normalize_phone(contact["phone"])
+    contact["email"] = ""
     contact["shared"] = payload.shared
-    state["contacts"].append(contact)
+    _append_contact_if_new(state, contact)
     _save_user_state(user["user_id"], state, user)
     return {"contact": contact, "state": state, "daily_briefing": _build_daily_briefing(state)}
+
+
+@app.get("/app/api/user-search")
+def user_search(q: str, request: Request):
+    user = _current_user(request)
+    query = q.strip().lower()
+    if len(query) < 2:
+        return {"users": []}
+    normalized_phone = _normalize_phone(query)
+    results: list[dict[str, Any]] = []
+    for row in _all_users():
+        if row.get("user_id") == user["user_id"] or row.get("is_disabled"):
+            continue
+        search_text = " ".join(
+            [
+                row.get("display_name", ""),
+                row.get("first_name", ""),
+                row.get("last_name", ""),
+                row.get("email", ""),
+                row.get("phone_number", ""),
+            ]
+        ).lower()
+        phone = _normalize_phone(str(row.get("phone_number", "")))
+        if query in search_text or (normalized_phone and normalized_phone in phone):
+            results.append(_public_user_summary(row))
+        if len(results) >= 12:
+            break
+    return {"users": results}
+
+
+@app.post("/app/api/contacts/add-user")
+def add_user_to_contacts(payload: DirectoryAddRequest, request: Request):
+    user = _current_user(request)
+    target = _find_user_by_id(payload.user_id)
+    if not target or target.get("is_disabled"):
+        raise HTTPException(status_code=404, detail="Telefon user not found")
+    state = _load_user_state(user["user_id"], user)
+    contact = {
+        "contact_id": secrets.token_hex(8),
+        "linked_user_id": target["user_id"],
+        "name": _compose_display_name(target.get("first_name", ""), target.get("last_name", ""), target.get("email", "")),
+        "phone": _normalize_phone(str(target.get("phone_number", ""))),
+        "email": target.get("email", "").strip().lower(),
+        "notes": "Telefon user",
+        "shared": False,
+    }
+    added = _append_contact_if_new(state, contact)
+    _save_user_state(user["user_id"], state, user)
+    return {"ok": True, "added": added, "state": state, "daily_briefing": _build_daily_briefing(state)}
+
+
+@app.post("/app/api/contacts/import")
+def import_contacts(payload: ContactImportRequest, request: Request):
+    user = _current_user(request)
+    state = _load_user_state(user["user_id"], user)
+    added_count = 0
+    for row in payload.contacts:
+        name = row.name.strip()
+        phone = _normalize_phone(row.phone)
+        email = row.email.strip().lower()
+        if not name and not phone and not email:
+            continue
+        added = _append_contact_if_new(
+            state,
+            {
+                "contact_id": secrets.token_hex(8),
+                "name": name or email or phone,
+                "phone": phone,
+                "email": email,
+                "notes": row.notes.strip(),
+                "shared": row.shared,
+            },
+        )
+        if added:
+            added_count += 1
+    _save_user_state(user["user_id"], state, user)
+    return {"ok": True, "added_count": added_count, "state": state, "daily_briefing": _build_daily_briefing(state)}
 
 
 @app.post("/app/api/trusted-circle")
