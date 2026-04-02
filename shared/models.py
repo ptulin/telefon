@@ -98,6 +98,8 @@ class QueryResult:
     mode: str
     interface_mode: str
     reasoning: list[str] = field(default_factory=list)
+    action_url: str | None = None
+    action_label: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

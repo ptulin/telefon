@@ -473,16 +473,76 @@ def _current_user(request: Request) -> dict:
 
 
 def _assistant_response(prompt: str, interface_mode: str, user_state: dict) -> dict[str, Any]:
-    lower = prompt.lower()
+    lower = prompt.lower().strip()
     contacts = user_state.get("contacts", [])
-    matched_contact = next((contact for contact in contacts if contact["name"].lower() in lower), None)
+    prompt_digits = "".join(ch for ch in prompt if ch.isdigit() or ch == "+")
 
-    if interface_mode == "call" and matched_contact:
+    def contact_score(contact: dict) -> int:
+        name = str(contact.get("name", "")).strip().lower()
+        if not name:
+            return 0
+        score = 0
+        if name in lower:
+            score += 100
+        name_parts = [part for part in name.replace(",", " ").split() if len(part) > 1]
+        for part in name_parts:
+            if part in lower:
+                score += 15
+        phone = str(contact.get("phone", "")).strip()
+        digits = "".join(ch for ch in phone if ch.isdigit() or ch == "+")
+        if digits and digits in prompt_digits:
+            score += 100
+        return score
+
+    ranked_contacts = sorted(contacts, key=contact_score, reverse=True)
+    matched_contact = ranked_contacts[0] if ranked_contacts and contact_score(ranked_contacts[0]) > 0 else None
+
+    if any(token in lower for token in ["install", "download", "add to home screen", "phone link"]):
+        return {
+            "text": (
+                "Open Install in the header, then choose Email me the app. "
+                "I’ll send the phone link to the same email address on your account so you can open it on your phone."
+            ),
+            "mode": "cloud-prototype",
+            "interface_mode": "talk",
+            "reasoning": ["install_help"],
+        }
+
+    if (interface_mode == "call" or "call" in lower or "phone" in lower) and matched_contact:
+        phone = matched_contact["phone"]
+        tel_target = "".join(ch for ch in phone if ch.isdigit() or ch == "+")
         text = (
             f"I found {matched_contact['name']} at {matched_contact['phone']}. "
-            "On a phone-capable client I would launch the dialer next."
+            "Tap the button below and I’ll hand this off to your phone dialer."
         )
-        return {"text": text, "mode": "cloud-prototype", "interface_mode": "call", "reasoning": ["user_contact_match"]}
+        return {
+            "text": text,
+            "mode": "cloud-prototype",
+            "interface_mode": "call",
+            "reasoning": ["user_contact_match"],
+            "action_url": f"tel:{tel_target}",
+            "action_label": f"Call {matched_contact['name']}",
+        }
+
+    if interface_mode == "call" and prompt_digits:
+        return {
+            "text": "I found a phone number in your request. Tap below and I’ll open the dialer with it ready.",
+            "mode": "cloud-prototype",
+            "interface_mode": "call",
+            "reasoning": ["phone_number_from_prompt"],
+            "action_url": f"tel:{prompt_digits}",
+            "action_label": "Call this number",
+        }
+
+    if interface_mode == "call":
+        suggestions = ", ".join(contact["name"] for contact in contacts[:3])
+        extra = f" Try one of these: {suggestions}." if suggestions else " Add a contact first in Profile so calling works."
+        return {
+            "text": "Tell me who to call by name or paste a phone number." + extra,
+            "mode": "cloud-prototype",
+            "interface_mode": "call",
+            "reasoning": ["call_missing_target"],
+        }
 
     if interface_mode == "calendar" and any(token in lower for token in ["schedule", "meeting", "appointment", "lunch"]):
         text = (

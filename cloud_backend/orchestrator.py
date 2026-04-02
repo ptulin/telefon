@@ -17,37 +17,48 @@ class CloudOrchestrator:
         if not api_key:
             return self._prototype_fallback(prompt, interface_mode)
 
-        response = requests.post(
-            f"{self.xai_base_url}/chat/completions",
-            timeout=45,
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={
-                "model": self.model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are the canonical personal AI for a user across an edge device and desktop app. "
-                            "Adapt to phone, camera, memory, or document contexts and answer naturally."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-            },
-        )
-        response.raise_for_status()
-        payload = response.json()
-        text = payload["choices"][0]["message"]["content"]
-        return QueryResult(
-            text=text,
-            mode="cloud",
-            interface_mode=interface_mode,
-            reasoning=["cloud_backend", "strong_model"],
-        )
+        try:
+            response = requests.post(
+                f"{self.xai_base_url}/chat/completions",
+                timeout=45,
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": self.model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are the canonical personal AI for a user across an edge device and desktop app. "
+                                "Adapt to phone, camera, memory, or document contexts and answer naturally."
+                            ),
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+            text = payload["choices"][0]["message"]["content"]
+            return QueryResult(
+                text=text,
+                mode="cloud",
+                interface_mode=interface_mode,
+                reasoning=["cloud_backend", "strong_model"],
+            )
+        except Exception:
+            result = self._prototype_fallback(prompt, interface_mode)
+            result.reasoning.append("cloud_error_fallback")
+            return result
 
     def _prototype_fallback(self, prompt: str, interface_mode: str) -> QueryResult:
         lowered = prompt.lower()
-        if interface_mode == "call" or "call" in lowered or "phone" in lowered:
+        if any(token in lowered for token in ["install", "download", "add to home screen", "phone link"]):
+            text = (
+                "Open the Install section in your account and choose Email me the app. "
+                "That sends the phone-friendly link to the same email address you used to sign in."
+            )
+            reasoning = ["prototype_fallback", "install_help"]
+        elif interface_mode == "call" or "call" in lowered or "phone" in lowered:
             text = (
                 "I can help place that call. I’ll look up the contact, confirm the right number if needed, "
                 "and then hand off to the phone dialer."

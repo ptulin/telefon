@@ -388,6 +388,12 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
       min-height: 150px;
       white-space: pre-wrap;
     }}
+    .assistant-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }}
     .section.hidden {{
       display: none;
     }}
@@ -781,13 +787,14 @@ def render_app_page() -> str:
               <textarea id="assistant-prompt" placeholder="Call Alice, schedule lunch, remember a preference, or help me buy something."></textarea>
             </label>
             <div class="cta-row">
-              <button onclick="askAssistant()">Ask my assistant</button>
-              <button class="secondary" onclick="fillPrompt('Call Alice')">Call someone</button>
-              <button class="secondary" onclick="fillPrompt('Schedule lunch next Tuesday')">Plan my day</button>
+              <button id="assistant-submit-button" onclick="askAssistant()">Ask my assistant</button>
+              <button class="secondary" onclick="startCallFlow()">Call someone</button>
+              <button class="secondary" onclick="startPlanningFlow()">Plan my day</button>
             </div>
             <div class="summary-box">
               <h3>Assistant response</h3>
               <div id="assistant-reply" class="assistant-reply muted">Nothing yet.</div>
+              <div id="assistant-actions" class="assistant-actions"></div>
             </div>
           </div>
         </div>
@@ -981,6 +988,81 @@ def render_app_page() -> str:
         document.getElementById('assistant-prompt').value = text;
       }
 
+      function setAssistantStatus(text, className = 'assistant-reply muted') {
+        const reply = document.getElementById('assistant-reply');
+        reply.textContent = text;
+        reply.className = className;
+      }
+
+      function clearAssistantActions() {
+        const box = document.getElementById('assistant-actions');
+        box.innerHTML = '';
+      }
+
+      function renderAssistantActions(data) {
+        const box = document.getElementById('assistant-actions');
+        box.innerHTML = '';
+        if (!data || !data.action_url) return;
+        const action = document.createElement('button');
+        action.className = 'secondary';
+        action.textContent = data.action_label || 'Open action';
+        action.onclick = () => {
+          if (String(data.action_url).startsWith('tel:')) {
+            window.location.href = data.action_url;
+            return;
+          }
+          window.open(data.action_url, '_blank');
+        };
+        box.appendChild(action);
+      }
+
+      function renderQuickCallActions(contacts) {
+        const box = document.getElementById('assistant-actions');
+        box.innerHTML = '';
+        for (const contact of contacts.slice(0, 3)) {
+          const action = document.createElement('button');
+          action.className = 'secondary';
+          action.textContent = 'Call ' + contact.name;
+          action.onclick = () => {
+            const digits = String(contact.phone || '').replace(/[^+\d]/g, '');
+            if (!digits) return;
+            window.location.href = 'tel:' + digits;
+          };
+          box.appendChild(action);
+        }
+      }
+
+      function startCallFlow() {
+        document.getElementById('assistant-mode').value = 'call';
+        const prompt = document.getElementById('assistant-prompt');
+        if (!prompt.value.trim()) {
+          prompt.value = 'Call ';
+        }
+        prompt.focus();
+        prompt.setSelectionRange(prompt.value.length, prompt.value.length);
+        const contacts = (appState && appState.state && appState.state.contacts) || [];
+        const suggestions = contacts.slice(0, 3).map((contact) => contact.name).join(', ');
+        setAssistantStatus(
+          suggestions
+            ? 'Tell me who to call. You can say a name like ' + suggestions + '.'
+            : 'Tell me who to call, or add a contact first in Profile.',
+          'assistant-reply muted'
+        );
+        if (contacts.length) {
+          renderQuickCallActions(contacts);
+        } else {
+          clearAssistantActions();
+        }
+      }
+
+      function startPlanningFlow() {
+        document.getElementById('assistant-mode').value = 'calendar';
+        fillPrompt('Schedule lunch next Tuesday');
+        document.getElementById('assistant-prompt').focus();
+        setAssistantStatus('Tell me what to schedule and when.', 'assistant-reply muted');
+        clearAssistantActions();
+      }
+
       function activeTabs() {
         return appState && appState.user && appState.user.is_admin ? adminTabs : regularTabs;
       }
@@ -1113,23 +1195,41 @@ def render_app_page() -> str:
       }
 
       async function askAssistant() {
-        const res = await fetch('/app/api/assistant', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: document.getElementById('assistant-prompt').value,
-            interface_mode: document.getElementById('assistant-mode').value
-          })
-        });
-        const data = await res.json();
-        const reply = document.getElementById('assistant-reply');
-        if (!res.ok) {
-          reply.textContent = data.detail || 'The assistant could not answer right now.';
-          reply.className = 'assistant-reply danger-text';
+        const prompt = document.getElementById('assistant-prompt').value.trim();
+        if (!prompt) {
+          setAssistantStatus('Tell me what you want help with first.', 'assistant-reply warning-text');
+          clearAssistantActions();
           return;
         }
-        reply.textContent = data.text;
-        reply.className = 'assistant-reply';
+        const button = document.getElementById('assistant-submit-button');
+        button.disabled = true;
+        button.textContent = 'Thinking...';
+        setAssistantStatus('Working on it...', 'assistant-reply muted');
+        clearAssistantActions();
+        try {
+          const res = await fetch('/app/api/assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt,
+              interface_mode: document.getElementById('assistant-mode').value
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setAssistantStatus(data.detail || 'The assistant could not answer right now.', 'assistant-reply danger-text');
+            clearAssistantActions();
+            return;
+          }
+          setAssistantStatus(data.text, 'assistant-reply');
+          renderAssistantActions(data);
+        } catch (error) {
+          setAssistantStatus('The assistant could not reach the server right now. Please try again.', 'assistant-reply danger-text');
+          clearAssistantActions();
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Ask my assistant';
+        }
       }
 
       async function saveProfile() {
