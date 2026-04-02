@@ -188,8 +188,9 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     }}
     .landing-hero p {{
       margin: 0;
-      max-width: 68ch;
-      font-size: 1.08rem;
+      max-width: none;
+      width: 100%;
+      font-size: 1.05rem;
     }}
     .panel, .card {{
       padding: 22px;
@@ -422,11 +423,11 @@ def _base_shell(title: str, body: str, *, app_shell: bool = False) -> str:
     }}
     @media (min-width: 981px) {{
       .landing-hero {{
-        gap: 22px;
+        gap: 18px;
       }}
       .landing-hero h1 {{
-        font-size: clamp(3.3rem, 7vw, 5.4rem);
-        line-height: 0.94;
+        font-size: clamp(2.8rem, 5.2vw, 4.4rem);
+        line-height: 0.96;
       }}
     }}
     @media (max-width: 760px) {{
