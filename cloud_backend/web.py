@@ -1028,6 +1028,10 @@ def render_app_page() -> str:
             window.location.href = data.action_url;
             return;
           }
+          if (String(data.action_url).startsWith('/')) {
+            window.location.href = data.action_url;
+            return;
+          }
           window.open(data.action_url, '_blank');
         };
         box.appendChild(action);

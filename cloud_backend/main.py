@@ -491,6 +491,7 @@ def _current_user(request: Request) -> dict:
 def _assistant_response(prompt: str, interface_mode: str, user_state: dict) -> dict[str, Any]:
     lower = prompt.lower().strip()
     contacts = user_state.get("contacts", [])
+    trusted_people = user_state.get("trusted_circle", [])
     prompt_digits = "".join(ch for ch in prompt if ch.isdigit() or ch == "+")
 
     def contact_score(contact: dict) -> int:
@@ -512,6 +513,69 @@ def _assistant_response(prompt: str, interface_mode: str, user_state: dict) -> d
 
     ranked_contacts = sorted(contacts, key=contact_score, reverse=True)
     matched_contact = ranked_contacts[0] if ranked_contacts and contact_score(ranked_contacts[0]) > 0 else None
+
+    if any(token in lower for token in ["who are my contacts", "show my contacts", "my contacts", "saved contacts"]):
+        if not contacts:
+            return {
+                "text": "You do not have any saved contacts yet. Open Profile to find another Telefon user or import contacts from this device.",
+                "mode": "cloud-prototype",
+                "interface_mode": "talk",
+                "reasoning": ["contacts_empty"],
+                "action_url": "/app#profile",
+                "action_label": "Add contacts",
+            }
+        top_contacts = ", ".join(contact["name"] for contact in contacts[:5])
+        return {
+            "text": f"You currently have {len(contacts)} saved contacts. Here are the first ones: {top_contacts}.",
+            "mode": "cloud-prototype",
+            "interface_mode": "talk",
+            "reasoning": ["contacts_summary"],
+            "action_url": "/app#profile",
+            "action_label": "View contacts",
+        }
+
+    if any(token in lower for token in ["add someone to contacts", "add someone", "add contact", "contact list", "how do i add"]) and "call" not in lower:
+        summary = (
+            "Open Profile, then use Find on Telefon to search by name, email, or phone number. "
+            "If the person already uses Telefon, tap Add to my contacts. "
+            "You can also use Import from this device to pick people from your phone or laptop address book."
+        )
+        if contacts:
+            summary += f" You already have {len(contacts)} saved contact" + ("" if len(contacts) == 1 else "s") + "."
+        return {
+            "text": summary,
+            "mode": "cloud-prototype",
+            "interface_mode": "talk",
+            "reasoning": ["contact_help"],
+            "action_url": "/app#profile",
+            "action_label": "Open contacts",
+        }
+
+    if any(token in lower for token in ["find user", "find someone", "search user", "find on telefon", "look up"]) and "contact" in lower:
+        return {
+            "text": (
+                "Use Find on Telefon inside Profile. Type a name, email, or phone number, then tap Add to my contacts. "
+                "That is the fastest way to connect with another Telefon user."
+            ),
+            "mode": "cloud-prototype",
+            "interface_mode": "talk",
+            "reasoning": ["user_directory_help"],
+            "action_url": "/app#profile",
+            "action_label": "Find on Telefon",
+        }
+
+    if any(token in lower for token in ["import contacts", "import my contacts", "phone contacts", "device contacts", "address book"]):
+        return {
+            "text": (
+                "Open Profile and choose Import from this device. "
+                "If your browser supports contact access, you can pick specific people or import all of the selected ones without typing them by hand."
+            ),
+            "mode": "cloud-prototype",
+            "interface_mode": "talk",
+            "reasoning": ["contact_import_help"],
+            "action_url": "/app#profile",
+            "action_label": "Import contacts",
+        }
 
     if any(token in lower for token in ["install", "download", "add to home screen", "phone link"]):
         return {
@@ -566,6 +630,19 @@ def _assistant_response(prompt: str, interface_mode: str, user_state: dict) -> d
             "assistant history, and prepare for future calendar and agent-to-agent scheduling."
         )
         return {"text": text, "mode": "cloud-prototype", "interface_mode": "calendar", "reasoning": ["calendar_intent"]}
+
+    if any(token in lower for token in ["help me", "how do i", "what can i do", "what should i do"]):
+        return {
+            "text": (
+                f"You can use me to call people, find Telefon users, import contacts from your device, save life details, and prepare scheduling tasks. "
+                f"Right now you have {len(contacts)} contacts and {len(trusted_people)} trusted helper" + ("" if len(trusted_people) == 1 else "s") + "."
+            ),
+            "mode": "cloud-prototype",
+            "interface_mode": "talk",
+            "reasoning": ["guided_help"],
+            "action_url": "/app#profile",
+            "action_label": "Open profile tools",
+        }
 
     if any(token in lower for token in ["buy", "order", "purchase"]):
         text = (
