@@ -18,6 +18,12 @@ class CloudOrchestrator:
         self.openrouter_api_key_env = os.environ.get("OPENROUTER_API_ENV", "OPENROUTER_API_KEY")
         self.site_url = os.environ.get("EDGE_SITE_URL", "https://telefon-phi.vercel.app")
         self.site_name = os.environ.get("EDGE_SITE_NAME", "Telefon")
+        self.allowed_action_urls = {
+            "/app",
+            "/app#home",
+            "/app#profile",
+            "/download",
+        }
 
     def respond(self, prompt: str, interface_mode: str, context: dict | None = None) -> QueryResult:
         provider = self._active_provider()
@@ -98,6 +104,8 @@ class CloudOrchestrator:
             "When useful, connect the current request to the user's relationships, preferences, or routines. "
             "Do not mention internal implementation details. "
             "If a helpful in-app action exists, include it. "
+            "Only use action_url when it matches one of these exact safe actions: /app, /app#home, /app#profile, /download, or tel:+15551234567 style phone links. "
+            "Do not invent routes, screens, anchors, or tool names. "
             "Return JSON with keys: text, optional action_label, optional action_url.\n\n"
             f"User profile: {profile}\n"
             f"Personal summary: {personal_summary}\n"
@@ -114,13 +122,14 @@ class CloudOrchestrator:
         try:
             payload = json.loads(content)
             if isinstance(payload, dict) and payload.get("text"):
+                action_url = self._sanitize_action_url(payload.get("action_url"))
                 return QueryResult(
                     text=str(payload.get("text", "")).strip(),
                     mode="cloud",
                     interface_mode=interface_mode,
                     reasoning=reasoning,
-                    action_url=str(payload.get("action_url")).strip() if payload.get("action_url") else None,
-                    action_label=str(payload.get("action_label")).strip() if payload.get("action_label") else None,
+                    action_url=action_url,
+                    action_label=str(payload.get("action_label")).strip() if action_url and payload.get("action_label") else None,
                 )
         except Exception:
             pass
@@ -130,6 +139,19 @@ class CloudOrchestrator:
             interface_mode=interface_mode,
             reasoning=reasoning + ["unstructured_response"],
         )
+
+    def _sanitize_action_url(self, raw: object) -> str | None:
+        if not raw:
+            return None
+        action_url = str(raw).strip()
+        if not action_url:
+            return None
+        if action_url.startswith("tel:"):
+            digits = re.sub(r"[^+\d]", "", action_url[4:])
+            return f"tel:{digits}" if digits else None
+        if action_url in self.allowed_action_urls:
+            return action_url
+        return None
 
     def _prototype_fallback(self, prompt: str, interface_mode: str, context: dict | None = None) -> QueryResult:
         lowered = prompt.lower()
