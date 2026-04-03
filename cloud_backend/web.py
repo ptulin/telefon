@@ -906,11 +906,10 @@ def render_app_page() -> str:
               <div class="cta-row">
                 <button class="secondary" onclick="searchTelefonUsers()">Find on Telefon</button>
                 <button class="secondary" onclick="importBrowserContacts()">Import from this device</button>
-                <button class="secondary" onclick="document.getElementById('contacts-file-input').click()">Import CSV</button>
               </div>
-              <input id="contacts-file-input" type="file" accept=".csv,text/csv" style="display:none" onchange="importContactsCsv(event)" />
               <div id="directory-status" class="status">Use a name, email, or phone number to add another Telefon user without retyping everything.</div>
               <div id="directory-results" class="list"></div>
+              <div id="import-preview" class="list" style="display:none;"></div>
             </div>
           </div>
           <div class="form">
@@ -932,7 +931,7 @@ def render_app_page() -> str:
               </select>
             </label>
             <button onclick="addContact()">Add contact</button>
-            <div id="contact-status" class="status">You can add people manually, search for a Telefon user, or import contacts from a supported browser or CSV file.</div>
+            <div id="contact-status" class="status">You can add people manually, search for a Telefon user, or import contacts from a supported browser.</div>
           </div>
           <div id="contacts-list" class="list" style="margin-top:16px;"></div>
         </div>
@@ -990,6 +989,7 @@ def render_app_page() -> str:
 
     <script>
       let appState = null;
+      let pendingImportedContacts = [];
       const regularTabs = [
         { id: 'home', label: 'Home' },
         { id: 'profile', label: 'Profile' }
@@ -1165,6 +1165,55 @@ def render_app_page() -> str:
             '</div>';
           list.appendChild(div);
         }
+      }
+
+      function hideImportPreview() {
+        const box = document.getElementById('import-preview');
+        box.style.display = 'none';
+        box.innerHTML = '';
+        pendingImportedContacts = [];
+      }
+
+      function renderImportPreview(rows) {
+        pendingImportedContacts = rows;
+        const box = document.getElementById('import-preview');
+        box.innerHTML = '';
+        if (!rows.length) {
+          box.style.display = 'none';
+          return;
+        }
+        box.style.display = 'grid';
+
+        const controls = document.createElement('div');
+        controls.className = 'item';
+        controls.innerHTML =
+          '<strong>Choose which contacts to import</strong>' +
+          '<div class="cta-row" style="margin-top:10px;">' +
+          '<button class="secondary" onclick="toggleImportSelection(true)">Select all</button>' +
+          '<button class="secondary" onclick="toggleImportSelection(false)">Clear all</button>' +
+          '<button onclick="importSelectedContacts()">Import selected</button>' +
+          '<button class="secondary" onclick="importAllPreviewContacts()">Import all</button>' +
+          '</div>';
+        box.appendChild(controls);
+
+        rows.forEach((row, index) => {
+          const item = document.createElement('label');
+          item.className = 'item';
+          item.style.cursor = 'pointer';
+          item.innerHTML =
+            '<div style="display:flex; gap:12px; align-items:flex-start;">' +
+            '<input type="checkbox" data-import-index="' + index + '" checked style="width:24px; min-height:24px; margin-top:4px;" />' +
+            '<div><strong>' + (row.name || row.email || row.phone) + '</strong><br>' +
+            '<span class="small muted">' + [row.phone || '', row.email || ''].filter(Boolean).join(' · ') + '</span></div>' +
+            '</div>';
+          box.appendChild(item);
+        });
+      }
+
+      function toggleImportSelection(nextValue) {
+        document.querySelectorAll('[data-import-index]').forEach((el) => {
+          el.checked = nextValue;
+        });
       }
 
       function callNumber(number) {
@@ -1407,6 +1456,7 @@ def render_app_page() -> str:
         }
         status.textContent = data.added_count + ' contacts imported.';
         status.className = 'status success';
+        hideImportPreview();
         hydrateApp({ user: appState.user, state: data.state, daily_briefing: data.daily_briefing });
         setTab('profile');
       }
@@ -1427,44 +1477,32 @@ def render_app_page() -> str:
             notes: 'Imported from device',
             shared: false
           })).filter((entry) => entry.name || entry.phone || entry.email);
-          await importContactsRows(rows);
+          if (!rows.length) {
+            status.textContent = 'No contacts were selected.';
+            status.className = 'status warning-text';
+            hideImportPreview();
+            return;
+          }
+          status.textContent = rows.length + ' contacts ready. Choose which ones to import.';
+          status.className = 'status success';
+          renderImportPreview(rows);
         } catch (error) {
           status.textContent = 'Contact import was cancelled.';
           status.className = 'status warning-text';
+          hideImportPreview();
         }
       }
 
-      async function importContactsCsv(event) {
-        const file = event.target.files && event.target.files[0];
-        const status = document.getElementById('directory-status');
-        if (!file) return;
-        try {
-          const text = await file.text();
-          const lines = text.split(/\\r?\\n/).filter(Boolean);
-          if (!lines.length) {
-            status.textContent = 'The CSV file was empty.';
-            status.className = 'status warning-text';
-            return;
-          }
-          const headers = lines[0].split(',').map((value) => value.trim().toLowerCase());
-          const rows = lines.slice(1).map((line) => {
-            const cols = line.split(',').map((value) => value.trim());
-            const row = Object.fromEntries(headers.map((header, idx) => [header, cols[idx] || '']));
-            return {
-              name: row.name || row.full_name || row['full name'] || '',
-              phone: row.phone || row.mobile || row.tel || '',
-              email: row.email || '',
-              notes: row.notes || row.note || 'Imported from CSV',
-              shared: false
-            };
-          }).filter((row) => row.name || row.phone || row.email);
-          await importContactsRows(rows);
-        } catch (error) {
-          status.textContent = 'Could not read that CSV file.';
-          status.className = 'status warning-text';
-        } finally {
-          event.target.value = '';
-        }
+      async function importSelectedContacts() {
+        const selected = Array.from(document.querySelectorAll('[data-import-index]'))
+          .filter((el) => el.checked)
+          .map((el) => pendingImportedContacts[Number(el.getAttribute('data-import-index'))])
+          .filter(Boolean);
+        await importContactsRows(selected);
+      }
+
+      async function importAllPreviewContacts() {
+        await importContactsRows(pendingImportedContacts);
       }
 
       async function addTrustedPerson() {
