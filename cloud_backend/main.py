@@ -651,8 +651,63 @@ def _assistant_response(prompt: str, interface_mode: str, user_state: dict) -> d
         )
         return {"text": text, "mode": "cloud-prototype", "interface_mode": "talk", "reasoning": ["commerce_intent"]}
 
-    result = orchestrator.respond(prompt, interface_mode)
+    context = _assistant_context(user_state)
+    result = orchestrator.respond(prompt, interface_mode, context)
     return result.to_dict()
+
+
+def _assistant_context(user_state: dict) -> dict[str, Any]:
+    profile = user_state.get("profile", {})
+    contacts = user_state.get("contacts", [])
+    trusted = user_state.get("trusted_circle", [])
+    assistant_history = user_state.get("assistant_history", [])
+
+    def format_memory(bucket: str, label: str) -> list[str]:
+        entries = user_state.get(bucket, [])[:3]
+        return [f"{label}: {entry.get('summary', '')}" for entry in entries if entry.get("summary")]
+
+    memory_lines = (
+        format_memory("preferences", "Preference")
+        + format_memory("habits", "Habit")
+        + format_memory("relationships", "Relationship")
+        + format_memory("life_details", "Life detail")
+    )
+    contacts_lines = [
+        f"{contact.get('name', 'Unknown')} ({contact.get('phone') or contact.get('email') or 'no phone'})"
+        for contact in contacts[:8]
+    ]
+    trusted_lines = [
+        f"{person.get('name', 'Unknown')} ({person.get('role', 'trusted person')})"
+        for person in trusted[:6]
+    ]
+    history_lines = [
+        f"User: {entry.get('prompt', '')} | Assistant: {entry.get('response', '')}"
+        for entry in assistant_history[-5:]
+    ]
+    return {
+        "profile": {
+            "first_name": profile.get("first_name", ""),
+            "last_name": profile.get("last_name", ""),
+            "email": profile.get("email", ""),
+            "phone_number": profile.get("phone_number", ""),
+            "display_name": profile.get("display_name", ""),
+        },
+        "memory_summary": " | ".join(memory_lines) if memory_lines else "No saved memory yet.",
+        "contacts_summary": " | ".join(contacts_lines) if contacts_lines else "No contacts yet.",
+        "trusted_summary": " | ".join(trusted_lines) if trusted_lines else "No trusted helpers yet.",
+        "history_summary": " | ".join(history_lines) if history_lines else "No recent assistant history.",
+        "contacts_count": len(contacts),
+        "trusted_count": len(trusted),
+        "tools": [
+            "find Telefon users",
+            "add contact",
+            "import contacts from device",
+            "open profile tools",
+            "call saved contact",
+            "email install link",
+            "save memory",
+        ],
+    }
 
 
 def _build_daily_briefing(state: dict) -> dict[str, Any]:
