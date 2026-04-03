@@ -684,6 +684,35 @@ def _assistant_context(user_state: dict) -> dict[str, Any]:
         f"User: {entry.get('prompt', '')} | Assistant: {entry.get('response', '')}"
         for entry in assistant_history[-5:]
     ]
+    relationship_names = [entry.get("summary", "") for entry in user_state.get("relationships", []) if entry.get("summary")]
+    preference_names = [entry.get("summary", "") for entry in user_state.get("preferences", []) if entry.get("summary")]
+    habit_names = [entry.get("summary", "") for entry in user_state.get("habits", []) if entry.get("summary")]
+    life_detail_names = [entry.get("summary", "") for entry in user_state.get("life_details", []) if entry.get("summary")]
+    contact_names = [contact.get("name", "") for contact in contacts if contact.get("name")]
+    trusted_names = [person.get("name", "") for person in trusted if person.get("name")]
+
+    personal_summary_parts = []
+    if profile.get("first_name"):
+        personal_summary_parts.append(f"The user is {profile.get('first_name')} {profile.get('last_name', '').strip()}.".strip())
+    if preference_names:
+        personal_summary_parts.append("Preferences: " + "; ".join(preference_names[:5]) + ".")
+    if habit_names:
+        personal_summary_parts.append("Habits and routines: " + "; ".join(habit_names[:5]) + ".")
+    if relationship_names:
+        personal_summary_parts.append("Important relationships: " + "; ".join(relationship_names[:5]) + ".")
+    if life_detail_names:
+        personal_summary_parts.append("Life details: " + "; ".join(life_detail_names[:5]) + ".")
+    if contact_names:
+        personal_summary_parts.append("Saved contacts include " + ", ".join(contact_names[:6]) + ".")
+    if trusted_names:
+        personal_summary_parts.append("Trusted helpers include " + ", ".join(trusted_names[:4]) + ".")
+
+    recent_intents = []
+    for entry in assistant_history[-6:]:
+        prompt = str(entry.get("prompt", "")).strip()
+        if prompt:
+            recent_intents.append(prompt)
+
     return {
         "profile": {
             "first_name": profile.get("first_name", ""),
@@ -696,6 +725,8 @@ def _assistant_context(user_state: dict) -> dict[str, Any]:
         "contacts_summary": " | ".join(contacts_lines) if contacts_lines else "No contacts yet.",
         "trusted_summary": " | ".join(trusted_lines) if trusted_lines else "No trusted helpers yet.",
         "history_summary": " | ".join(history_lines) if history_lines else "No recent assistant history.",
+        "personal_summary": " ".join(personal_summary_parts) if personal_summary_parts else "The assistant is still learning about this user.",
+        "recent_intents": recent_intents,
         "contacts_count": len(contacts),
         "trusted_count": len(trusted),
         "tools": [
@@ -1354,6 +1385,7 @@ def app_assistant(payload: QueryRequest, request: Request):
             "created_at": utc_now(),
         }
     )
+    state["assistant_history"] = state["assistant_history"][-20:]
     _save_user_state(user["user_id"], state, user)
     return result
 
